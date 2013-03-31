@@ -1,7 +1,7 @@
 name:                  bencoding
 version:               0.1.0.0
-synopsis:
-description:
+synopsis:              A library for encoding and decoding the BEncode data.
+description:           A library for encoding and decoding the BEncode data.
 license:               MIT
 license-file:          LICENSE
 author:                Sam T.
@@ -27,7 +27,8 @@ library
 
   hs-source-dirs:      src
 
-  ghc-options:         -Wall -fno-warn-unused-do-bind -Werror
+  ghc-options:         -Wall -fno-warn-unused-do-bind
+-- -Werror
 
 executable pp
   main-is:             pp.hs
@@ -36,7 +37,8 @@ executable pp
                      , bencoding   >= 0.1.0.0
 
   hs-source-dirs:      pp
-  ghc-options:         -Wall -Werror -O2
+  ghc-options:         -Wall -O2
+-- -Werror
 
 test-suite properties
   type:                exitcode-stdio-1.0
