@@ -49,19 +49,19 @@ main = do
        defaultMain
        [ bench "decode/bencode"     $ nf A.bRead                            lazyTorrentFile
        , bench "decode/AttoBencode" $ nf (getRight . Atto.parseOnly bValue) torrentFile
-       , bench "decode/b-encode"    $ nf (getRight . C.decode)              torrentFile
+       , bench "decode/bencoding"   $ nf (getRight . C.decode)              torrentFile
 
        , let Just v = A.bRead lazyTorrentFile in
          bench "encode/bencode"     $ nf A.bPack v
        , let Right v = Atto.parseOnly bValue torrentFile in
          bench "encode/AttoBencode" $ nf B.encode v
        , let Right v = C.decode torrentFile in
-         bench "encode/b-encode"    $ nf C.encode v
+         bench "encode/bencoding"   $ nf C.encode v
 
        , bench "decode+encode/bencode"     $ nf (A.bPack  . fromJust . A.bRead)
                lazyTorrentFile
        , bench "decode+encode/AttoBencode" $ nf (B.encode . getRight . Atto.parseOnly bValue)
                torrentFile
-       , bench "decode+encode/b-encode"    $ nf (C.encode . getRight . C.decode)
+       , bench "decode+encode/bencoding"   $ nf (C.encode . getRight . C.decode)
                torrentFile
        ]
