@@ -21,14 +21,18 @@ source-repository head
 library
   exposed-modules:     Data.BEncode
   other-modules:
+
+-- WARN package text is used only for instance declaration
   build-depends:       base       == 4.5.*
                      , containers >= 0.4.0
                      , bytestring >= 0.10.2.0
                      , attoparsec >= 0.10.4.0
+                     , text       >= 0.11.2.3
                      , ansi-wl-pprint
 
   hs-source-dirs:      src
 
+  extensions:          PatternGuards
   ghc-options:         -Wall -fno-warn-unused-do-bind
 -- -Werror
 

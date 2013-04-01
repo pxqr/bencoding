@@ -42,6 +42,8 @@ import qualified Data.ByteString.Lazy as Lazy
 import           Data.ByteString.Internal as B (c2w, w2c)
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP ()
+import           Data.Text (Text)
+import qualified Data.Text.Encoding as T
 import           Text.PrettyPrint.ANSI.Leijen (Pretty, Doc, pretty, (<+>), (</>))
 import qualified Text.PrettyPrint.ANSI.Leijen as PP
 
@@ -116,6 +118,15 @@ instance BEncodable ByteString where
   fromBEncode (BString s) = Right s
   fromBEncode _           = decodingError "string"
   {-# INLINE fromBEncode #-}
+
+
+instance BEncodable Text where
+  toBEncode = toBEncode . T.encodeUtf8
+  {-# INLINE toBEncode #-}
+
+  fromBEncode b = T.decodeUtf8 <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
 
 {-
 instance BEncodable String where
