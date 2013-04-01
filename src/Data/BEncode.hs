@@ -68,7 +68,7 @@ class BEncodable a where
 --  bencoding = Iso (Right . toBencode) fromBEncode
 
 decodingError :: String -> Result a
-decodingError s = Left ("fromBEncode: unable to match " ++ s)
+decodingError s = Left ("fromBEncode: unable to decode " ++ s)
 {-# INLINE decodingError #-}
 
 instance BEncodable BEncode where
@@ -182,7 +182,8 @@ reqKey d key
 
 optKey :: BEncodable a => Map ByteString BEncode -> ByteString -> Result (Maybe a)
 optKey d key
-  | Just b <- M.lookup key d = Just <$> fromBEncode b
+  | Just b <- M.lookup key d
+  , Right r <- fromBEncode b = return (Just r)
   | otherwise                = return Nothing
 
 (>--) :: BEncodable a => Map ByteString BEncode -> ByteString -> Result a
