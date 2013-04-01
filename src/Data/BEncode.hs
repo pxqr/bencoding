@@ -37,6 +37,7 @@ import           Data.Attoparsec.ByteString.Char8 (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as Lazy
 import           Data.ByteString.Internal as B (c2w, w2c)
 import qualified Data.ByteString.Builder as B
@@ -178,7 +179,7 @@ fromAscAssocs = error "fromAscAssocs"
 reqKey :: BEncodable a => Map ByteString BEncode -> ByteString -> Result a
 reqKey d key
   | Just b <- M.lookup key d = fromBEncode b
-  |        otherwise         = Left ("required field `" ++ show key ++ " not found")
+  |        otherwise         = Left ("required field `" ++ BC.unpack key ++ "' not found")
 
 optKey :: BEncodable a => Map ByteString BEncode -> ByteString -> Result (Maybe a)
 optKey d key
