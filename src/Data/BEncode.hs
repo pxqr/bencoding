@@ -1,13 +1,12 @@
 -- | This module is intented to be imported qualified.
+{-# LANGUAGE FlexibleInstances #-}
 module Data.BEncode
        ( -- ^ Datatype
          BEncode(..)
 
-         -- ^ Construction
-       , string, integer, list, dict
-       , int, charstring, dictAssoc
+         -- ^ Construction && Destructuring
+       , BEncodable (..), dictAssoc
 
-         -- ^ Destructuring
          -- ^ Serialization
        , encode, decode
 
@@ -21,7 +20,8 @@ module Data.BEncode
 
 import Control.Applicative
 import Data.Int
-import Data.Foldable
+import Data.Foldable (foldMap)
+import Data.Traversable (traverse)
 import Data.Monoid ((<>))
 import           Data.Map (Map)
 import qualified Data.Map as M
@@ -50,33 +50,74 @@ data BEncode = BInteger Int64
              | BDict    Dict
                deriving (Show, Read, Eq, Ord)
 
-integer :: Integer -> BEncode
-integer = BInteger . fromIntegral
-{-# INLINE integer #-}
+class BEncodable a where
+  toBEncode   :: a -> BEncode
+  fromBEncode :: BEncode -> Maybe a
+--  isEncodable :: BEncode -> Bool
 
-string :: ByteString -> BEncode
-string = BString
-{-# INLINE string #-}
+instance BEncodable BEncode where
+  toBEncode = id
+  {-# INLINE toBEncode #-}
 
-list :: [BEncode] -> BEncode
-list = BList
-{-# INLINE list #-}
+  fromBEncode = Just
+  {-# INLINE fromBEncode #-}
 
-dict :: Dict -> BEncode
-dict = BDict
-{-# INLINE dict #-}
+instance BEncodable Int where
+  toBEncode = BInteger . fromIntegral
+  {-# INLINE toBEncode #-}
 
+  fromBEncode (BInteger i) = Just (fromIntegral i)
+  fromBEncode _            = Nothing
+  {-# INLINE fromBEncode #-}
 
-int :: Int -> BEncode
-int = integer . fromIntegral
-{-# INLINE int #-}
+instance BEncodable Integer where
+  toBEncode = BInteger . fromIntegral
+  {-# INLINE toBEncode #-}
 
-charstring :: String -> BEncode
-charstring = string . B.pack . map (toEnum . fromEnum)
-{-# INLINE charstring #-}
+  fromBEncode (BInteger i) = Just (fromIntegral i)
+  fromBEncode _            = Nothing
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable ByteString where
+  toBEncode = BString
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BString s) = Just s
+  fromBEncode _           = Nothing
+  {-# INLINE fromBEncode #-}
+
+{-
+instance BEncodable String where
+  toBEncode = BString . BC.pack
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BString s) = Just (BC.unpack s)
+  fromBEncode _           = Nothing
+  {-# INLINE fromBEncode #-}
+-}
+
+instance BEncodable a => BEncodable [a] where
+  {-# SPECIALIZE instance BEncodable [BEncode] #-}
+
+  toBEncode = BList . map toBEncode
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BList xs) = mapM fromBEncode xs
+  fromBEncode _          = Nothing
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable a => BEncodable (Map ByteString a) where
+  {-# SPECIALIZE instance BEncodable (Map ByteString BEncode) #-}
+
+  toBEncode = BDict . M.map toBEncode
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BDict d) = traverse fromBEncode d
+  fromBEncode _         = Nothing
+  {-# INLINE fromBEncode #-}
 
 dictAssoc :: [(ByteString, BEncode)] -> BEncode
-dictAssoc = dict . M.fromList
+dictAssoc = BDict . M.fromList
 {-# INLINE dictAssoc #-}
 
 
