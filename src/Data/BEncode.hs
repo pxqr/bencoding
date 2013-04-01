@@ -1,28 +1,36 @@
 -- | This module is intented to be imported qualified.
 {-# LANGUAGE FlexibleInstances #-}
 module Data.BEncode
-       ( -- ^ Datatype
+       ( -- * Datatype
          BEncode(..)
 
-         -- ^ Construction && Destructuring
-       , BEncodable (..), dictAssoc
+         -- * Construction && Destructuring
+       , BEncodable (..), dictAssoc, Result
 
-         -- ^ Serialization
+         -- ** Dictionaries
+         -- *** Building
+       , (-->), (-->?), fromAssocs, fromAscAssocs
+
+         -- *** Extraction
+       , reqKey, optKey, (>--), (>--?)
+
+         -- * Serialization
        , encode, decode
 
-         -- ^ Extra
-       , builder, parser, printPretty
+         -- * Extra
+       , builder, parser, decodingError, printPretty
 
-         -- ^ Predicates
+         -- * Predicates
        , isInteger, isString, isList, isDict
        ) where
 
 
 import Control.Applicative
 import Data.Int
+import Data.Maybe (mapMaybe)
+import Data.Monoid ((<>))
 import Data.Foldable (foldMap)
 import Data.Traversable (traverse)
-import Data.Monoid ((<>))
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Attoparsec.ByteString.Char8 (Parser)
@@ -142,7 +150,50 @@ dictAssoc :: [(ByteString, BEncode)] -> BEncode
 dictAssoc = BDict . M.fromList
 {-# INLINE dictAssoc #-}
 
+------------------------------------- Building dictionaries --------------------
+data Assoc = Required ByteString BEncode
+           | Optional ByteString (Maybe BEncode)
 
+(-->) :: BEncodable a => ByteString -> a -> Assoc
+key --> val = Required key (toBEncode val)
+{-# INLINE (-->) #-}
+
+(-->?) :: BEncodable a => ByteString -> Maybe a -> Assoc
+key -->? mval = Optional key (toBEncode <$> mval)
+{-# INLINE (-->?) #-}
+
+fromAssocs :: [Assoc] -> BEncode
+fromAssocs = BDict . M.fromList . mapMaybe unpackAssoc
+  where
+    unpackAssoc (Required n v)        = Just (n, v)
+    unpackAssoc (Optional n (Just v)) = Just (n, v)
+    unpackAssoc (Optional _ Nothing)  = Nothing
+
+-- | A faster version of 'fromAssocs'.
+--   Should be used only when keys are sorted by ascending.
+fromAscAssocs :: [Assoc] -> BEncode
+fromAscAssocs = error "fromAscAssocs"
+
+------------------------------------ Extraction --------------------------------
+reqKey :: BEncodable a => Map ByteString BEncode -> ByteString -> Result a
+reqKey d key
+  | Just b <- M.lookup key d = fromBEncode b
+  |        otherwise         = Left ("required field `" ++ show key ++ " not found")
+
+optKey :: BEncodable a => Map ByteString BEncode -> ByteString -> Result (Maybe a)
+optKey d key
+  | Just b <- M.lookup key d = Just <$> fromBEncode b
+  | otherwise                = return Nothing
+
+(>--) :: BEncodable a => Map ByteString BEncode -> ByteString -> Result a
+(>--) = reqKey
+{-# INLINE (>--) #-}
+
+(>--?) :: BEncodable a => Map ByteString BEncode -> ByteString -> Result (Maybe a)
+(>--?) = optKey
+{-# INLINE (>--?) #-}
+
+------------------------------------- Predicates -------------------------------
 isInteger :: BEncode -> Bool
 isInteger (BInteger _) = True
 isInteger _            = False
