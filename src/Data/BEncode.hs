@@ -70,6 +70,13 @@ instance BEncodable Int where
   fromBEncode _            = Nothing
   {-# INLINE fromBEncode #-}
 
+instance BEncodable Bool where
+  toBEncode = toBEncode . fromEnum
+  {-# INLINE toBEncode #-}
+
+  fromBEncode b = toEnum <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
 instance BEncodable Integer where
   toBEncode = BInteger . fromIntegral
   {-# INLINE toBEncode #-}
