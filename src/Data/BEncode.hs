@@ -50,47 +50,62 @@ data BEncode = BInteger Int64
              | BDict    Dict
                deriving (Show, Read, Eq, Ord)
 
+type Result = Either String
+
 class BEncodable a where
   toBEncode   :: a -> BEncode
-  fromBEncode :: BEncode -> Maybe a
+  fromBEncode :: BEncode -> Result a
 --  isEncodable :: BEncode -> Bool
+--  bencoding :: Iso a
+--  bencoding = Iso (Right . toBencode) fromBEncode
+
+decodingError :: String -> Result a
+decodingError s = Left ("fromBEncode: unable to match " ++ s)
+{-# INLINE decodingError #-}
 
 instance BEncodable BEncode where
   toBEncode = id
   {-# INLINE toBEncode #-}
 
-  fromBEncode = Just
+  fromBEncode = Right
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Int where
   toBEncode = BInteger . fromIntegral
   {-# INLINE toBEncode #-}
 
-  fromBEncode (BInteger i) = Just (fromIntegral i)
-  fromBEncode _            = Nothing
+  fromBEncode (BInteger i) = Right (fromIntegral i)
+  fromBEncode _            = decodingError "integer"
   {-# INLINE fromBEncode #-}
+
 
 instance BEncodable Bool where
   toBEncode = toBEncode . fromEnum
   {-# INLINE toBEncode #-}
 
-  fromBEncode b = toEnum <$> fromBEncode b
+  fromBEncode b = do
+    i <- fromBEncode b
+    case i :: Int of
+      0 -> return False
+      1 -> return True
+      _ -> decodingError "bool"
   {-# INLINE fromBEncode #-}
+
 
 instance BEncodable Integer where
   toBEncode = BInteger . fromIntegral
   {-# INLINE toBEncode #-}
 
-  fromBEncode (BInteger i) = Just (fromIntegral i)
-  fromBEncode _            = Nothing
+  fromBEncode b = fromIntegral <$> (fromBEncode b :: Result Int)
   {-# INLINE fromBEncode #-}
+
 
 instance BEncodable ByteString where
   toBEncode = BString
   {-# INLINE toBEncode #-}
 
-  fromBEncode (BString s) = Just s
-  fromBEncode _           = Nothing
+  fromBEncode (BString s) = Right s
+  fromBEncode _           = decodingError "string"
   {-# INLINE fromBEncode #-}
 
 {-
@@ -110,7 +125,7 @@ instance BEncodable a => BEncodable [a] where
   {-# INLINE toBEncode #-}
 
   fromBEncode (BList xs) = mapM fromBEncode xs
-  fromBEncode _          = Nothing
+  fromBEncode _          = decodingError "list"
   {-# INLINE fromBEncode #-}
 
 instance BEncodable a => BEncodable (Map ByteString a) where
@@ -120,7 +135,7 @@ instance BEncodable a => BEncodable (Map ByteString a) where
   {-# INLINE toBEncode #-}
 
   fromBEncode (BDict d) = traverse fromBEncode d
-  fromBEncode _         = Nothing
+  fromBEncode _         = decodingError "dictionary"
   {-# INLINE fromBEncode #-}
 
 dictAssoc :: [(ByteString, BEncode)] -> BEncode
