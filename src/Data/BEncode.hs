@@ -16,6 +16,7 @@ module Data.BEncode
 
          -- * Serialization
        , encode, decode
+       , encoded, decoded
 
          -- * Extra
        , builder, parser, decodingError, printPretty
@@ -26,6 +27,7 @@ module Data.BEncode
 
 
 import Control.Applicative
+import Control.Monad
 import Data.Int
 import Data.Maybe (mapMaybe)
 import Data.Monoid ((<>))
@@ -66,6 +68,8 @@ type Result = Either String
 class BEncodable a where
   toBEncode   :: a -> BEncode
   fromBEncode :: BEncode -> Result a
+
+
 --  isEncodable :: BEncode -> Bool
 --  bencoding :: Iso a
 --  bencoding = Iso (Right . toBencode) fromBEncode
@@ -129,7 +133,7 @@ instance BEncodable Text where
 
 
 {-
-instance BEncodable String where
+instance BEncodable Stringwhere
   toBEncode = BString . BC.pack
   {-# INLINE toBEncode #-}
 
@@ -174,17 +178,22 @@ key --> val = Required key (toBEncode val)
 key -->? mval = Optional key (toBEncode <$> mval)
 {-# INLINE (-->?) #-}
 
-fromAssocs :: [Assoc] -> BEncode
-fromAssocs = BDict . M.fromList . mapMaybe unpackAssoc
+mkAssocs :: [Assoc] -> [(ByteString, BEncode)]
+mkAssocs = mapMaybe unpackAssoc
   where
     unpackAssoc (Required n v)        = Just (n, v)
     unpackAssoc (Optional n (Just v)) = Just (n, v)
     unpackAssoc (Optional _ Nothing)  = Nothing
 
+fromAssocs :: [Assoc] -> BEncode
+fromAssocs = BDict . M.fromList . mkAssocs
+{-# INLINE fromAssocs #-}
+
 -- | A faster version of 'fromAssocs'.
 --   Should be used only when keys are sorted by ascending.
 fromAscAssocs :: [Assoc] -> BEncode
-fromAscAssocs = error "fromAscAssocs"
+fromAscAssocs = BDict . M.fromList . mkAssocs
+{-# INLINE fromAscAssocs #-}
 
 ------------------------------------ Extraction --------------------------------
 reqKey :: BEncodable a => Map ByteString BEncode -> ByteString -> Result a
@@ -227,11 +236,18 @@ isDict (BList _) = True
 isDict _         = False
 {-# INLINE isDict #-}
 
+--------------------------------------- Encoding -------------------------------
 encode :: BEncode -> Lazy.ByteString
 encode = B.toLazyByteString . builder
 
-decode :: ByteString -> Either String BEncode
+decode :: ByteString -> Result BEncode
 decode = P.parseOnly parser
+
+decoded :: BEncodable a => ByteString -> Result a
+decoded = decode >=> fromBEncode
+
+encoded :: BEncodable a => a -> Lazy.ByteString
+encoded = encode . toBEncode
 
 
 builder :: BEncode -> B.Builder
@@ -255,7 +271,7 @@ builder = go
                       B.byteString s
       {-# INLINE buildString #-}
 
-
+-- | todo zepto
 parser :: Parser BEncode
 parser = valueP
   where
@@ -288,6 +304,19 @@ parser = valueP
     {-# INLINE integerP #-}
 
 
+-- | Extract raw field from the dict.
+--   Useful for info hash extraction.
+--rawLookup :: ByteString -> Result ByteString
+--rawLookup key = P.parseOnly (P.char 'd' >> go)
+--  where
+--  -  go = do
+--      s <- stringP
+--      if s == key
+--        then (
+--        else parser >> go
+
+
+-------------------------------- pretty printing -------------------------------
 printPretty :: BEncode -> IO ()
 printPretty = print . pretty
 
