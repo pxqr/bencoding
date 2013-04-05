@@ -33,6 +33,7 @@ import Data.Maybe (mapMaybe)
 import Data.Monoid ((<>))
 import Data.Foldable (foldMap)
 import Data.Traversable (traverse)
+import Data.Word (Word8, Word16, Word32, Word64, Word)
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Attoparsec.ByteString.Char8 (Parser)
@@ -92,7 +93,6 @@ instance BEncodable Int where
   fromBEncode (BInteger i) = Right (fromIntegral i)
   fromBEncode _            = decodingError "integer"
   {-# INLINE fromBEncode #-}
-
 
 instance BEncodable Bool where
   toBEncode = toBEncode . fromEnum
@@ -335,3 +335,43 @@ instance Pretty BEncode where
           PP.rbrace
       where
         ppKV (k, v) = ppBS k <+> PP.colon <+> PP.pretty v
+
+
+------------------------------- other instances ------------------------------
+
+instance BEncodable Word8 where
+  {-# SPECIALIZE instance BEncodable Word8 #-}
+  toBEncode = toBEncode . (fromIntegral :: Word8 -> Word64)
+  {-# INLINE toBEncode #-}
+  fromBEncode b = (fromIntegral :: Word64 -> Word8) <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Word16 where
+  {-# SPECIALIZE instance BEncodable Word16 #-}
+  toBEncode = toBEncode . (fromIntegral :: Word16 -> Word64)
+  {-# INLINE toBEncode #-}
+  fromBEncode b = (fromIntegral :: Word64 -> Word16) <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Word32 where
+  {-# SPECIALIZE instance BEncodable Word32 #-}
+  toBEncode = toBEncode . (fromIntegral :: Word32 -> Word64)
+  {-# INLINE toBEncode #-}
+  fromBEncode b = (fromIntegral :: Word64 -> Word32) <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Word64 where
+  {-# SPECIALIZE instance BEncodable Word64 #-}
+  toBEncode = toBEncode . (fromIntegral :: Word64 -> Int)
+  {-# INLINE toBEncode #-}
+  fromBEncode b = (fromIntegral :: Int -> Word64) <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Word where
+  {-# SPECIALIZE instance BEncodable Word #-}
+  toBEncode = toBEncode . (fromIntegral :: Word -> Int)
+  {-# INLINE toBEncode #-}
+  fromBEncode b = (fromIntegral :: Int -> Word) <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
+-- todo: platform independent
