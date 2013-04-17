@@ -1,3 +1,4 @@
+-- TODO: make int's instances platform independent so we can make library portable.
 -- |
 --   Copyright   :  (c) Sam T. 2013
 --   License     :  MIT
@@ -112,10 +113,6 @@ class BEncodable a where
   fromBEncode :: BEncode -> Result a
 
 
---  isEncodable :: BEncode -> Bool
---  bencoding :: Iso a
---  bencoding = Iso (Right . toBencode) fromBEncode
-
 decodingError :: String -> Result a
 decodingError s = Left ("fromBEncode: unable to decode " ++ s)
 {-# INLINE decodingError #-}
@@ -171,16 +168,6 @@ instance BEncodable Text where
 
   fromBEncode b = T.decodeUtf8 <$> fromBEncode b
   {-# INLINE fromBEncode #-}
-
-{-
-instance BEncodable Stringwhere
-  toBEncode = BString . BC.pack
-  {-# INLINE toBEncode #-}
-
-  fromBEncode (BString s) = Just (BC.unpack s)
-  fromBEncode _           = Nothing
-  {-# INLINE fromBEncode #-}
--}
 
 instance BEncodable a => BEncodable [a] where
   {-# SPECIALIZE instance BEncodable [BEncode] #-}
@@ -289,7 +276,7 @@ decoded = decode >=> fromBEncode
 encoded :: BEncodable a => a -> Lazy.ByteString
 encoded = encode . toBEncode
 
-
+-------------------------------------- internals -------------------------------
 builder :: BEncode -> B.Builder
 builder = go
     where
@@ -343,19 +330,6 @@ parser = valueP
            <|> P.decimal
     {-# INLINE integerP #-}
 
-
--- | Extract raw field from the dict.
---   Useful for info hash extraction.
---rawLookup :: ByteString -> Result ByteString
---rawLookup key = P.parseOnly (P.char 'd' >> go)
---  where
---  -  go = do
---      s <- stringP
---      if s == key
---        then (
---        else parser >> go
-
-
 -------------------------------- pretty printing -------------------------------
 printPretty :: BEncode -> IO ()
 printPretty = print . pretty
@@ -407,11 +381,9 @@ instance BEncodable Word64 where
   fromBEncode b = (fromIntegral :: Int -> Word64) <$> fromBEncode b
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Word where
+instance BEncodable Word where -- TODO: make platform independent
   {-# SPECIALIZE instance BEncodable Word #-}
   toBEncode = toBEncode . (fromIntegral :: Word -> Int)
   {-# INLINE toBEncode #-}
   fromBEncode b = (fromIntegral :: Int -> Word) <$> fromBEncode b
   {-# INLINE fromBEncode #-}
-
--- todo: platform independent
