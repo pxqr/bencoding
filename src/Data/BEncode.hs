@@ -1,4 +1,45 @@
--- | This module is intented to be imported qualified.
+-- |
+--   Copyright   :  (c) Sam T. 2013
+--   License     :  MIT
+--   Maintainer  :  pxqr.sta@gmail.com
+--   Stability   :  stable
+--   Portability :  non-portable
+--
+--   This module provides convinient and fast way to serialize, deserealize
+--   and construct/destructure Bencoded values with optional fields.
+--
+--   It supports four different types of values:
+--
+--     * byte strings — represented as 'ByteString';
+--
+--     * integers     — represented as 'Integer';
+--
+--     * lists        - represented as ordinary lists;
+--
+--     * dictionaries — represented as 'Map';
+--
+--    To serialize any other types we need to make conversion.
+--    To make conversion more convenient there is type class for it: 'BEncodable'.
+--    Any textual strings are considered as UTF8 encoded 'Text'.
+--
+--    The complete Augmented BNF syntax for bencoding format is:
+--
+--
+--    > <BE>    ::= <DICT> | <LIST> | <INT> | <STR>
+--    >
+--    > <DICT>  ::= "d" 1 * (<STR> <BE>) "e"
+--    > <LIST>  ::= "l" 1 * <BE>         "e"
+--    > <INT>   ::= "i"     <SNUM>       "e"
+--    > <STR>   ::= <NUM> ":" n * <CHAR>; where n equals the <NUM>
+--    >
+--    > <SNUM>  ::= "-" <NUM> / <NUM>
+--    > <NUM>   ::= 1 * <DIGIT>
+--    > <CHAR>  ::= %
+--    > <DIGIT> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
+--
+--
+--    This module is considered to be imported qualified.
+--
 {-# LANGUAGE FlexibleInstances #-}
 module Data.BEncode
        ( -- * Datatype
@@ -18,11 +59,11 @@ module Data.BEncode
        , encode, decode
        , encoded, decoded
 
-         -- * Extra
-       , builder, parser, decodingError, printPretty
-
          -- * Predicates
        , isInteger, isString, isList, isDict
+
+         -- * Extra
+       , builder, parser, decodingError, printPretty
        ) where
 
 
@@ -52,7 +93,7 @@ import qualified Text.PrettyPrint.ANSI.Leijen as PP
 
 type Dict = Map ByteString BEncode
 
--- | 'BEncode' is straightforward AST for b-encoded values.
+-- | 'BEncode' is straightforward ADT for b-encoded values.
 --   Please note that since dictionaries are sorted, in most cases we can
 --   compare BEncoded values without serialization and vice versa.
 --   Lists is not required to be sorted through.
@@ -130,7 +171,6 @@ instance BEncodable Text where
 
   fromBEncode b = T.decodeUtf8 <$> fromBEncode b
   {-# INLINE fromBEncode #-}
-
 
 {-
 instance BEncodable Stringwhere
