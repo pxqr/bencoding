@@ -25,7 +25,7 @@ library
 -- WARN package text is used only for instance declaration
   build-depends:       base       == 4.5.*
                      , containers == 0.4.*
-                     , bytestring == 0.10.*
+                     , bytestring >= 0.10.2
                      , attoparsec == 0.10.*
                      , text       == 0.11.*
                      , ansi-wl-pprint
@@ -39,7 +39,7 @@ library
 executable pp
   main-is:             pp.hs
   build-depends:       base        == 4.5.*
-                     , bytestring  == 0.10.*
+                     , bytestring >= 0.10.2
                      , bencoding   == 0.1.*
 
   hs-source-dirs:      pp
@@ -53,7 +53,7 @@ test-suite properties
 
   build-depends:       base       == 4.5.*
                      , containers == 0.4.*
-                     , bytestring == 0.10.*
+                     , bytestring >= 0.10.2
                      , attoparsec == 0.10.*
                      , ansi-wl-pprint
 
@@ -72,7 +72,7 @@ benchmark bench-comparison
 
   build-depends:       base == 4.5.*
                      , attoparsec == 0.10.*
-                     , bytestring == 0.10.*
+                     , bytestring >= 0.10.2
 
                      , criterion
                      , deepseq
