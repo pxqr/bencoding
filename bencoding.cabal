@@ -2,8 +2,8 @@ name:                  bencoding
 version:               0.1.0.0
 synopsis:              A library for encoding and decoding the BEncode data.
 description:           A library for encoding and decoding the BEncode data.
-homepage:              https://github.com/fmap/bencoding
-bug-reports:           https://github.com/fmap/bencoding/issues
+homepage:              https://github.com/pxqr/bencoding
+bug-reports:           https://github.com/pxqr/bencoding/issues
 license:               MIT
 license-file:          LICENSE
 author:                Sam T.
@@ -15,7 +15,7 @@ cabal-version:         >= 1.8
 
 source-repository head
   type:                git
-  location:            https://github.com/fmap/bencoding.git
+  location:            https://github.com/pxqr/bencoding.git
 
 
 library

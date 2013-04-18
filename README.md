@@ -12,6 +12,6 @@ See full documentation at ```src/Data/BEncode.hs```.
 
 [![Build Status][2]][3]
 
-[1]: http://htmlpreview.github.com/?https://github.com/fmap/bencoding/master/bench/comparison.html
-[2]: https://travis-ci.org/fmap/bencoding.png
-[3]: https://travis-ci.org/fmap/bencoding
+[1]: http://htmlpreview.github.com/?https://github.com/pxqr/bencoding/master/bench/comparison.html
+[2]: https://travis-ci.org/pxqr/bencoding.png
+[3]: https://travis-ci.org/pxqr/bencoding
