@@ -3,6 +3,8 @@ language: haskell
 notifications:
   email: false
 
-install: cabal install --enable-tests --enable-benchmark --force-reinstalls --only-dependencies
+install:
+  cabal install --enable-tests --enable-benchmark --force-reinstalls --only-dependencies
 
-script: cabal configure --enable-tests --enable-benchmark && cabal build && cabal test
+script:
+  cabal configure --enable-tests --enable-benchmark && cabal build && cabal test
