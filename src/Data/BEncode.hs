@@ -179,6 +179,7 @@ instance BEncodable a => BEncodable [a] where
   fromBEncode _          = decodingError "list"
   {-# INLINE fromBEncode #-}
 
+
 instance BEncodable a => BEncodable (Map ByteString a) where
   {-# SPECIALIZE instance BEncodable (Map ByteString BEncode) #-}
 
@@ -187,6 +188,68 @@ instance BEncodable a => BEncodable (Map ByteString a) where
 
   fromBEncode (BDict d) = traverse fromBEncode d
   fromBEncode _         = decodingError "dictionary"
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable () where
+  {-# SPECIALIZE instance BEncodable () #-}
+  toBEncode () = BList []
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BList []) = Right ()
+  fromBEncode _          = decodingError "Unable to decode unit value"
+  {-# INLINE fromBEncode #-}
+
+instance (BEncodable a, BEncodable b) => BEncodable (a, b) where
+  {-# SPECIALIZE instance (BEncodable a, BEncodable b) => BEncodable (a, b) #-}
+  toBEncode (a, b) = BList [toBEncode a, toBEncode b]
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BList [a, b]) = (,) <$> fromBEncode a <*> fromBEncode b
+  fromBEncode _              = decodingError "Unable to decode a pair."
+  {-# INLINE fromBEncode #-}
+
+instance (BEncodable a, BEncodable b, BEncodable c) => BEncodable (a, b, c) where
+  {-# SPECIALIZE instance (BEncodable a, BEncodable b, BEncodable c)
+                  => BEncodable (a, b, c) #-}
+  {-# INLINE toBEncode #-}
+  toBEncode (a, b, c) = BList [toBEncode a, toBEncode b, toBEncode c]
+
+  fromBEncode (BList [a, b, c]) =
+    (,,) <$> fromBEncode a <*> fromBEncode b <*> fromBEncode c
+  fromBEncode _ = decodingError "Unable to decode a triple"
+  {-# INLINE fromBEncode #-}
+
+instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d)
+         => BEncodable (a, b, c, d) where
+  {-# SPECIALIZE instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d)
+                  => BEncodable (a, b, c, d) #-}
+  {-# INLINE toBEncode #-}
+  toBEncode (a, b, c, d) = BList [ toBEncode a, toBEncode b
+                                 , toBEncode c, toBEncode d
+                                 ]
+
+  fromBEncode (BList [a, b, c, d]) =
+    (,,,) <$> fromBEncode a <*> fromBEncode b
+          <*> fromBEncode c <*> fromBEncode d
+  fromBEncode _ = decodingError "Unable to decode a tuple4"
+  {-# INLINE fromBEncode #-}
+
+instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d, BEncodable e)
+         => BEncodable (a, b, c, d, e) where
+  {-# SPECIALIZE instance ( BEncodable a, BEncodable b
+                          , BEncodable c, BEncodable d
+                          , BEncodable e)
+                  => BEncodable (a, b, c, d, e) #-}
+  {-# INLINE toBEncode #-}
+  toBEncode (a, b, c, d, e) = BList [ toBEncode a, toBEncode b
+                                 , toBEncode c, toBEncode d
+                                 , toBEncode e
+                                 ]
+
+  fromBEncode (BList [a, b, c, d, e]) =
+    (,,,,) <$> fromBEncode a <*> fromBEncode b
+           <*> fromBEncode c <*> fromBEncode d <*> fromBEncode e
+  fromBEncode _ = decodingError "Unable to decode a tuple5"
   {-# INLINE fromBEncode #-}
 
 dictAssoc :: [(ByteString, BEncode)] -> BEncode
