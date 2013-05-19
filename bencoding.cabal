@@ -24,10 +24,10 @@ library
 
 -- WARN package text is used only for instance declaration
   build-depends:       base       == 4.*
-                     , containers >= 0.4.*
+                     , containers >= 0.4
                      , bytestring >= 0.10.2.0
-                     , attoparsec >= 0.10.*
-                     , text       >= 0.11.*
+                     , attoparsec >= 0.10
+                     , text       >= 0.11
                      , ansi-wl-pprint
 
   hs-source-dirs:      src
@@ -52,9 +52,9 @@ test-suite properties
   hs-source-dirs:      tests
 
   build-depends:       base       == 4.*
-                     , containers >= 0.4.*
+                     , containers >= 0.4
                      , bytestring >= 0.10.2.0
-                     , attoparsec >= 0.10.*
+                     , attoparsec >= 0.10
                      , ansi-wl-pprint
 
                      , test-framework
@@ -71,7 +71,7 @@ benchmark bench-comparison
   hs-source-dirs:      bench
 
   build-depends:       base == 4.*
-                     , attoparsec >= 0.10.*
+                     , attoparsec >= 0.10
                      , bytestring >= 0.10.2.0
 
                      , criterion
@@ -79,6 +79,6 @@ benchmark bench-comparison
 
                      , bencoding
                      , bencode     >= 0.5
-                     , AttoBencode >= 0.2.*
+                     , AttoBencode >= 0.2
 
   ghc-options:         -O2 -Wall -fno-warn-orphans
