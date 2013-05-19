@@ -1,15 +1,15 @@
 # Synopsis
 
-BEncode is JSON-like format used in bittorrent protocol but might be
-used anywhere else.
+[BEncode][bencode] is [JSON][json-ref]-like format used in bittorrent
+protocol but might be used anywhere else.
 
 # Description
 
 This package implements fast seamless encoding/decoding to/from
 bencode format for many native datatypes. To achive
-[more performance][1] we use new bytestring builders and hand
-optimized attoparsec parser so this library is considered as
-replacement for BEncode and AttoBencode packages.
+[more performance][cmp] we use [bytestring builders][bytestring-builder]
+and hand optimized [attoparsec][attoparsec] parser so this library is
+considered as replacement for BEncode and AttoBencode packages.
 
 ## Format
 
@@ -40,7 +40,7 @@ For documentation see haddock generated documentation.
 
 # Build Status
 
-[![Build Status][2]][3]
+[![Build Status][travis-img]][travis-log]
 
 # Authors
 
@@ -48,6 +48,12 @@ This library is written and maintained by Sam T. <pxqr.sta@gmail.com>
 Feel free to report bugs and suggestions via github issue tracker or the mail.
 
 
-[1]: http://htmlpreview.github.com/?https://github.com/pxqr/bencoding/master/bench/comparison.html
-[2]: https://travis-ci.org/pxqr/bencoding.png
-[3]: https://travis-ci.org/pxqr/bencoding
+[cmp]: http://htmlpreview.github.com/?https://github.com/pxqr/bencoding/master/bench/comparison.html
+
+[bencode]: https://wiki.theory.org/BitTorrentSpecification#Bencoding
+[json-ref]: http://www.json.org/
+[attoparsec]: http://hackage.haskell.org/package/attoparsec-0.10.4.0
+[bytestring-builder]: http://hackage.haskell.org/packages/archive/bytestring/0.10.2.0/doc/html/Data-ByteString-Builder.html
+
+[travis-img]: https://travis-ci.org/pxqr/bencoding.png
+[travis-log]: https://travis-ci.org/pxqr/bencoding
