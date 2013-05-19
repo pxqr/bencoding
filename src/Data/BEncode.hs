@@ -403,7 +403,7 @@ parser = valueP
                      P.anyChar
                      (BDict . M.fromDistinctAscList <$> many ((,) <$> stringP <*> valueP))
                         <* P.anyChar
-              _   -> fail ""
+              _   -> fail "Unable to parse bencode: unknown tag"
 
     stringP :: Parser ByteString
     stringP = do

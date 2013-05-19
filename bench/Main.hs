@@ -6,6 +6,7 @@ import Data.Maybe
 import Data.Attoparsec.ByteString as Atto
 import Data.ByteString as B
 import Data.ByteString.Lazy as BL
+import Data.List as L
 import Criterion.Main
 import System.Environment
 
@@ -64,4 +65,26 @@ main = do
                torrentFile
        , bench "decode+encode/bencoding"   $ nf (C.encode . getRight . C.decode)
                torrentFile
+
+       , bench "list10000int/bencode/encode" $ nf
+           (A.bPack . A.BList . L.map (A.BInt . fromIntegral))
+             [0..10000 :: Int]
+
+       , bench "list10000int/attobencode/encode" $ nf B.encode [1..20000 :: Int]
+       , bench "list10000int/bencoding/encode" $ nf C.encoded [1..20000 :: Int]
+
+
+       , let d = A.bPack $ A.BList $
+                 L.map A.BInt (L.replicate 1000 (0 :: Integer))
+         in d `seq` (bench "list10000int/bencode/decode" $ nf
+            (fromJust . A.bRead :: BL.ByteString -> A.BEncode) d)
+
+       , let d = BL.toStrict (C.encoded (L.replicate 10000 ()))
+         in d `seq` (bench "list10000unit/bencoding/decode" $ nf
+            (C.decoded :: B.ByteString -> Either String [()]) d)
+
+       , let d = BL.toStrict (C.encoded (L.replicate 10000 (0 :: Int)))
+         in d `seq` (bench "list10000int/bencoding/decode" $ nf
+            (C.decoded :: B.ByteString -> Either String [Int]) d)
+
        ]
