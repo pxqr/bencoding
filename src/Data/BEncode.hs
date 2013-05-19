@@ -88,7 +88,7 @@ import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as Lazy
 import           Data.ByteString.Internal as B (c2w, w2c)
 import qualified Data.ByteString.Builder as B
-import qualified Data.ByteString.Builder.Prim as BP ()
+import qualified Data.ByteString.Builder.Prim as BP (int64Dec, primBounded)
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as T
 import           Data.Version
@@ -368,7 +368,7 @@ builder :: BEncode -> B.Builder
 builder = go
     where
       go (BInteger i) = B.word8 (c2w 'i') <>
-                        B.intDec (fromIntegral i) <> -- TODO FIXME
+                        BP.primBounded BP.int64Dec i <> -- TODO FIXME
                         B.word8 (c2w 'e')
       go (BString  s) = buildString s
       go (BList    l) = B.word8 (c2w 'l') <>
@@ -403,7 +403,7 @@ parser = valueP
                      P.anyChar
                      (BDict . M.fromDistinctAscList <$> many ((,) <$> stringP <*> valueP))
                         <* P.anyChar
-              _   -> fail "Unable to parse bencode: unknown tag"
+              t   -> fail ("bencode unknown tag: " ++ [t])
 
     stringP :: Parser ByteString
     stringP = do
