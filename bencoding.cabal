@@ -23,11 +23,11 @@ library
   other-modules:
 
 -- WARN package text is used only for instance declaration
-  build-depends:       base       == 4.5.*
-                     , containers == 0.4.*
-                     , bytestring >= 0.10.2
-                     , attoparsec == 0.10.*
-                     , text       == 0.11.*
+  build-depends:       base       == 4.*
+                     , containers >= 0.4.*
+                     , bytestring >= 0.10.2.0
+                     , attoparsec >= 0.10.*
+                     , text       >= 0.11.*
                      , ansi-wl-pprint
 
   hs-source-dirs:      src
@@ -38,9 +38,9 @@ library
 
 executable pp
   main-is:             pp.hs
-  build-depends:       base        == 4.5.*
-                     , bytestring >= 0.10.2
-                     , bencoding   == 0.1.*
+  build-depends:       base        == 4.*
+                     , bytestring
+                     , bencoding
 
   hs-source-dirs:      pp
   ghc-options:         -Wall -O2
@@ -51,16 +51,16 @@ test-suite properties
   main-is:             properties.hs
   hs-source-dirs:      tests
 
-  build-depends:       base       == 4.5.*
-                     , containers == 0.4.*
-                     , bytestring >= 0.10.2
-                     , attoparsec == 0.10.*
+  build-depends:       base       == 4.*
+                     , containers >= 0.4.*
+                     , bytestring >= 0.10.2.0
+                     , attoparsec >= 0.10.*
                      , ansi-wl-pprint
 
                      , test-framework
                      , test-framework-quickcheck2
                      , QuickCheck
-                     , bencoding == 0.1.*
+                     , bencoding
 
   ghc-options:         -Wall -fno-warn-orphans
 
@@ -70,15 +70,15 @@ benchmark bench-comparison
   main-is:             Main.hs
   hs-source-dirs:      bench
 
-  build-depends:       base == 4.5.*
-                     , attoparsec == 0.10.*
-                     , bytestring >= 0.10.2
+  build-depends:       base == 4.*
+                     , attoparsec >= 0.10.*
+                     , bytestring >= 0.10.2.0
 
                      , criterion
                      , deepseq
 
-                     , bencoding   == 0.1.*
-                     , bencode     == 0.5
-                     , AttoBencode == 0.2.*
+                     , bencoding
+                     , bencode     >= 0.5
+                     , AttoBencode >= 0.2.*
 
   ghc-options:         -O2 -Wall -fno-warn-orphans
