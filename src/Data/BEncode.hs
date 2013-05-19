@@ -78,6 +78,8 @@ import Data.Traversable (traverse)
 import Data.Word (Word8, Word16, Word32, Word64, Word)
 import           Data.Map (Map)
 import qualified Data.Map as M
+import           Data.Set (Set)
+import qualified Data.Set as S
 import           Data.Attoparsec.ByteString.Char8 (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import           Data.ByteString (ByteString)
@@ -89,8 +91,10 @@ import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP ()
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as T
+import           Data.Version
 import           Text.PrettyPrint.ANSI.Leijen (Pretty, Doc, pretty, (<+>), (</>))
 import qualified Text.PrettyPrint.ANSI.Leijen as PP
+import qualified Text.ParserCombinators.ReadP as ReadP
 
 type Dict = Map ByteString BEncode
 
@@ -190,6 +194,15 @@ instance BEncodable a => BEncodable (Map ByteString a) where
   fromBEncode _         = decodingError "dictionary"
   {-# INLINE fromBEncode #-}
 
+instance (Eq a, BEncodable a) => BEncodable (Set a) where
+  {-# SPECIALIZE instance (Eq a, BEncodable a) => BEncodable (Set a)  #-}
+  toBEncode = BList . map toBEncode . S.toAscList
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BList xs) = S.fromAscList <$> traverse fromBEncode xs
+  fromBEncode _          = decodingError "Data.Set"
+  {-# INLINE fromBEncode #-}
+
 instance BEncodable () where
   {-# SPECIALIZE instance BEncodable () #-}
   toBEncode () = BList []
@@ -250,6 +263,17 @@ instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d, BEncodable e)
     (,,,,) <$> fromBEncode a <*> fromBEncode b
            <*> fromBEncode c <*> fromBEncode d <*> fromBEncode e
   fromBEncode _ = decodingError "Unable to decode a tuple5"
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Version where
+  {-# SPECIALIZE instance BEncodable Version #-}
+  {-# INLINE toBEncode #-}
+  toBEncode = toBEncode . BC.pack . showVersion
+
+  fromBEncode (BString bs)
+    | [(v, _)] <- ReadP.readP_to_S parseVersion (BC.unpack bs)
+    = return v
+  fromBEncode _ = decodingError "Data.Version"
   {-# INLINE fromBEncode #-}
 
 dictAssoc :: [(ByteString, BEncode)] -> BEncode
