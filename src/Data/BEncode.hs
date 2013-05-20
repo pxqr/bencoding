@@ -104,8 +104,8 @@ type Dict = Map ByteString BEncode
 --   Lists is not required to be sorted through.
 --   Also note that 'BEncode' have JSON-like instance for 'Pretty'.
 --
-data BEncode = BInteger Int64
-             | BString  ByteString
+data BEncode = BInteger {-# UNPACK #-} !Int64
+             | BString  !ByteString
              | BList    [BEncode]
              | BDict    Dict
                deriving (Show, Read, Eq, Ord)
@@ -122,6 +122,7 @@ decodingError s = Left ("fromBEncode: unable to decode " ++ s)
 {-# INLINE decodingError #-}
 
 instance BEncodable BEncode where
+  {-# SPECIALIZE instance BEncodable BEncode #-}
   toBEncode = id
   {-# INLINE toBEncode #-}
 
@@ -129,6 +130,7 @@ instance BEncodable BEncode where
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Int where
+  {-# SPECIALIZE instance BEncodable Int #-}
   toBEncode = BInteger . fromIntegral
   {-# INLINE toBEncode #-}
 
@@ -385,7 +387,7 @@ builder = go
                       B.byteString s
       {-# INLINE buildString #-}
 
--- | todo zepto
+-- | TODO try to replace peekChar with something else
 parser :: Parser BEncode
 parser = valueP
   where
@@ -397,13 +399,19 @@ parser = valueP
             case c of
               -- if we have digit it always should be string length
               di | di <= '9' -> BString <$> stringP
-              'i' -> P.anyChar *> ((BInteger <$> integerP)    <* P.anyChar)
-              'l' -> P.anyChar *> ((BList    <$> many valueP) <* P.anyChar)
+              'i' -> P.anyChar *> ((BInteger <$> integerP) <* P.anyChar)
+              'l' -> P.anyChar *> ((BList    <$> listBody) <* P.anyChar)
               'd' -> do
                      P.anyChar
                      (BDict . M.fromDistinctAscList <$> many ((,) <$> stringP <*> valueP))
                         <* P.anyChar
               t   -> fail ("bencode unknown tag: " ++ [t])
+
+    listBody = do
+      c <- P.peekChar
+      case c of
+        Just 'e' -> return []
+        _        -> (:) <$> valueP <*> listBody
 
     stringP :: Parser ByteString
     stringP = do
@@ -413,8 +421,13 @@ parser = valueP
     {-# INLINE stringP #-}
 
     integerP :: Parser Int64
-    integerP = negate <$> (P.char8 '-' *> P.decimal)
-           <|> P.decimal
+    integerP = do
+      c <- P.peekChar
+      case c of
+        Just '-' -> do
+          P.anyChar
+          negate <$> P.decimal
+        _        ->  P.decimal
     {-# INLINE integerP #-}
 
 -------------------------------- pretty printing -------------------------------

@@ -76,15 +76,18 @@ main = do
 
        , let d = A.bPack $ A.BList $
                  L.map A.BInt (L.replicate 1000 (0 :: Integer))
-         in d `seq` (bench "list10000int/bencode/decode" $ nf
+         in d `seq` (bench "list1000int/bencode/decode" $ nf
             (fromJust . A.bRead :: BL.ByteString -> A.BEncode) d)
 
        , let d = BL.toStrict (C.encoded (L.replicate 10000 ()))
          in d `seq` (bench "list10000unit/bencoding/decode" $ nf
             (C.decoded :: B.ByteString -> Either String [()]) d)
 
-       , let d = BL.toStrict (C.encoded (L.replicate 10000 (0 :: Int)))
+       , let d = BL.toStrict $ C.encoded $ L.replicate 10000 (0 :: Int)
          in d `seq` (bench "list10000int/bencoding/decode" $ nf
             (C.decoded :: B.ByteString -> Either String [Int]) d)
 
+       , let d = L.replicate 10000 0
+         in bench "list10000int/bencoding/encode>>decode" $ nf
+            (getRight . C.decoded . BL.toStrict . C.encoded :: [Int] ->  [Int] ) d
        ]
