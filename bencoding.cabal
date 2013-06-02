@@ -13,6 +13,8 @@ category:              Codec, Data
 build-type:            Simple
 cabal-version:         >= 1.8
 
+extra-source-files:    README.md .travis.yml
+
 source-repository head
   type:                git
   location:            https://github.com/pxqr/bencoding.git
@@ -20,9 +22,6 @@ source-repository head
 
 library
   exposed-modules:     Data.BEncode
-  other-modules:
-
--- WARN package text is used only for instance declaration
   build-depends:       base       == 4.*
                      , containers >= 0.4
                      , bytestring >= 0.10.2.0
@@ -31,20 +30,18 @@ library
                      , pretty
 
   hs-source-dirs:      src
-
   extensions:          PatternGuards
   ghc-options:         -Wall -fno-warn-unused-do-bind
--- -Werror
+
 
 executable pp
   main-is:             pp.hs
   build-depends:       base        == 4.*
                      , bytestring
                      , bencoding
-
   hs-source-dirs:      pp
   ghc-options:         -Wall -O2
--- -Werror
+
 
 test-suite properties
   type:                exitcode-stdio-1.0
