@@ -284,7 +284,10 @@ dictAssoc :: [(ByteString, BEncode)] -> BEncode
 dictAssoc = BDict . M.fromList
 {-# INLINE dictAssoc #-}
 
-------------------------------------- Building dictionaries --------------------
+{--------------------------------------------------------------------
+  Building dictionaries
+--------------------------------------------------------------------}
+
 data Assoc = Required ByteString BEncode
            | Optional ByteString (Maybe BEncode)
 
@@ -313,7 +316,10 @@ fromAscAssocs :: [Assoc] -> BEncode
 fromAscAssocs = BDict . M.fromList . mkAssocs
 {-# INLINE fromAscAssocs #-}
 
------------------------------------- Extraction --------------------------------
+{--------------------------------------------------------------------
+  Extraction
+--------------------------------------------------------------------}
+
 reqKey :: BEncodable a => Map ByteString BEncode -> ByteString -> Result a
 reqKey d key
   | Just b <- M.lookup key d = fromBEncode b
@@ -333,7 +339,10 @@ optKey d key
 (>--?) = optKey
 {-# INLINE (>--?) #-}
 
-------------------------------------- Predicates -------------------------------
+{--------------------------------------------------------------------
+  Predicated
+--------------------------------------------------------------------}
+
 isInteger :: BEncode -> Bool
 isInteger (BInteger _) = True
 isInteger _            = False
@@ -354,7 +363,10 @@ isDict (BList _) = True
 isDict _         = False
 {-# INLINE isDict #-}
 
---------------------------------------- Encoding -------------------------------
+{--------------------------------------------------------------------
+  Encoding
+--------------------------------------------------------------------}
+
 encode :: BEncode -> Lazy.ByteString
 encode = B.toLazyByteString . builder
 
@@ -367,7 +379,10 @@ decoded = decode >=> fromBEncode
 encoded :: BEncodable a => a -> Lazy.ByteString
 encoded = encode . toBEncode
 
--------------------------------------- internals -------------------------------
+{--------------------------------------------------------------------
+  Internals
+--------------------------------------------------------------------}
+
 builder :: BEncode -> B.Builder
 builder = go
     where
@@ -432,7 +447,10 @@ parser = valueP
         _        ->  P.decimal
     {-# INLINE integerP #-}
 
--------------------------------- pretty printing -------------------------------
+{--------------------------------------------------------------------
+  Pretty Printing
+--------------------------------------------------------------------}
+
 printPretty :: BEncode -> IO ()
 printPretty = print . ppBEncode
 
@@ -447,8 +465,9 @@ ppBEncode (BDict    d) = braces $ vcat (punctuate comma (map ppKV (M.toAscList d
   where
     ppKV (k, v) = ppBS k <+> colon <+> ppBEncode v
 
-
-------------------------------- other instances ------------------------------
+{--------------------------------------------------------------------
+  Other instances
+--------------------------------------------------------------------}
 
 instance BEncodable Word8 where
   {-# SPECIALIZE instance BEncodable Word8 #-}
