@@ -28,7 +28,7 @@ library
                      , bytestring >= 0.10.2.0
                      , attoparsec >= 0.10
                      , text       >= 0.11
-                     , ansi-wl-pprint
+                     , pretty
 
   hs-source-dirs:      src
 
@@ -55,7 +55,6 @@ test-suite properties
                      , containers >= 0.4
                      , bytestring >= 0.10.2.0
                      , attoparsec >= 0.10
-                     , ansi-wl-pprint
 
                      , test-framework
                      , test-framework-quickcheck2

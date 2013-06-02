@@ -42,6 +42,7 @@
 --    This module is considered to be imported qualified.
 --
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE Trustworthy #-}
 module Data.BEncode
        ( -- * Datatype
          BEncode(..)
@@ -92,9 +93,10 @@ import qualified Data.ByteString.Builder.Prim as BP (int64Dec, primBounded)
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as T
 import           Data.Version
-import           Text.PrettyPrint.ANSI.Leijen (Pretty, Doc, pretty, (<+>), (</>))
-import qualified Text.PrettyPrint.ANSI.Leijen as PP
+import           Text.PrettyPrint hiding ((<>))
 import qualified Text.ParserCombinators.ReadP as ReadP
+
+
 
 type Dict = Map ByteString BEncode
 
@@ -432,23 +434,18 @@ parser = valueP
 
 -------------------------------- pretty printing -------------------------------
 printPretty :: BEncode -> IO ()
-printPretty = print . pretty
+printPretty = print . ppBEncode
 
 ppBS :: ByteString -> Doc
-ppBS = PP.string . map w2c . B.unpack
+ppBS = text . map w2c . B.unpack
 
-instance Pretty BEncode where
-    pretty (BInteger i) = PP.integer (fromIntegral i)
-    pretty (BString  s) = ppBS s
-    pretty (BList    l) = PP.lbracket <+>
-                   PP.hsep (PP.punctuate PP.comma (map PP.pretty l)) <+>
-                          PP.rbracket
-    pretty (BDict    d) =
-      PP.align $ PP.lbrace <+>
-           PP.vsep (PP.punctuate PP.comma (map ppKV (M.toAscList d))) </>
-          PP.rbrace
-      where
-        ppKV (k, v) = ppBS k <+> PP.colon <+> PP.pretty v
+ppBEncode :: BEncode -> Doc
+ppBEncode (BInteger i) = int (fromIntegral i)
+ppBEncode (BString  s) = ppBS s
+ppBEncode (BList    l) = brackets $ hsep (punctuate comma (map ppBEncode l))
+ppBEncode (BDict    d) = braces $ vcat (punctuate comma (map ppKV (M.toAscList d)))
+  where
+    ppKV (k, v) = ppBS k <+> colon <+> ppBEncode v
 
 
 ------------------------------- other instances ------------------------------
