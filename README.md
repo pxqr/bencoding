@@ -17,7 +17,8 @@ Bencode is pretty similar to JSON: it has dictionaries(JSON objects),
 lists(JSON arrays), strings and integers. However bencode has a few
 advantages:
 
-* No spaces in between any values — nor lists nor dicts nor anywhere else.
+* Compactness: no spaces in between any values — nor lists nor dicts
+  nor anywhere else.
 * Dictionaries always sorted lexicographically by the keys. This allow
   us to test data on equality without decoding from raw bytestring.
   Moreover this allow to hash encoded data (this property is heavily
@@ -25,14 +26,10 @@ advantages:
 * All strings prefixed with its length. This simplifies and speed up
   string parsing.
 
+Hovewer there are some disadvantages comparing with JSON:
 
-As always, each advantage has its disadvantage:
-
-* Bencode is certainly less human readable than JSON.
-* Bencode is rarely used. Except bittorrent protocol of course. But
-  this might be not a problem if you are searching for format for
-  internal use only.
-
+* Bencode is certainly less human readable.
+* Bencode is rarely used, except bittorrent protocol of course.
 
 # Documentation
 
@@ -45,6 +42,7 @@ For documentation see haddock generated documentation.
 # Authors
 
 This library is written and maintained by Sam T. <pxqr.sta@gmail.com>
+
 Feel free to report bugs and suggestions via github issue tracker or the mail.
 
 

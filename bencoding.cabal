@@ -1,7 +1,6 @@
 name:                  bencoding
 version:               0.1.0.0
-synopsis:              A library for encoding and decoding the BEncode data.
-description:           A library for encoding and decoding the BEncode data.
+synopsis:              A library for encoding and decoding of BEncode data.
 homepage:              https://github.com/pxqr/bencoding
 bug-reports:           https://github.com/pxqr/bencoding/issues
 license:               MIT
@@ -12,12 +11,20 @@ copyright:             (c) 2013, Sam T.
 category:              Codec, Data
 build-type:            Simple
 cabal-version:         >= 1.8
+description:
+
+  A library for encoding and decoding of BEncode data.
+  .
+  [/Release notes/]
+  .
+    * /0.1.0.0:/ Initial version.
+
 
 extra-source-files:    README.md .travis.yml
 
 source-repository head
   type:                git
-  location:            https://github.com/pxqr/bencoding.git
+  location:            git://github.com/pxqr/bencoding.git
 
 
 library
@@ -40,7 +47,7 @@ executable pp
                      , bytestring
                      , bencoding
   hs-source-dirs:      pp
-  ghc-options:         -Wall -O2
+  ghc-options:         -Wall
 
 
 test-suite properties
