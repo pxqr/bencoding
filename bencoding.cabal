@@ -31,7 +31,7 @@ library
   exposed-modules:     Data.BEncode
   build-depends:       base       == 4.*
                      , containers >= 0.4
-                     , bytestring >= 0.10.2.0
+                     , bytestring >= 0.10.0.0
                      , attoparsec >= 0.10
                      , text       >= 0.11
                      , pretty
