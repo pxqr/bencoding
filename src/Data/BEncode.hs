@@ -54,11 +54,7 @@
 {-# LANGUAGE DefaultSignatures      #-}
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
-
--- TODO use TF
 {-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE UndecidableInstances   #-}
 #endif
 
 module Data.BEncode
@@ -107,7 +103,6 @@ module Data.BEncode
 import Control.Applicative
 import Control.Monad
 import Data.Int
-import Data.List as L
 import Data.Maybe         (mapMaybe)
 import Data.Monoid        -- (mempty, (<>))
 import Data.Foldable      (foldMap)
@@ -230,11 +225,7 @@ instance (GBEncodable a e, GBEncodable b e)
 instance (Selector s, GBEncodable f BEncode)
        => GBEncodable (M1 S s f) Dict where
   {-# INLINE gto #-}
-  gto s @ (M1 x)
-      | True || L.null sel = BC.pack sel `M.singleton` gto x
---      | otherwise  = undefined
-    where
-      sel = selName s
+  gto s @ (M1 x) = BC.pack (selName s) `M.singleton` gto x
 
   {-# INLINE gfrom #-}
   gfrom = undefined
