@@ -47,6 +47,20 @@
 --
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Trustworthy       #-}
+{-# LANGUAGE CPP               #-}
+
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE TypeOperators          #-}
+{-# LANGUAGE DefaultSignatures      #-}
+{-# LANGUAGE FlexibleContexts       #-}
+{-# LANGUAGE FlexibleInstances      #-}
+
+-- TODO use TF
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE UndecidableInstances   #-}
+#endif
+
 module Data.BEncode
        ( -- * Datatype
          BEncode(..)
@@ -93,11 +107,12 @@ module Data.BEncode
 import Control.Applicative
 import Control.Monad
 import Data.Int
-import Data.Maybe (mapMaybe)
-import Data.Monoid ((<>))
-import Data.Foldable (foldMap)
-import Data.Traversable (traverse)
-import Data.Word (Word8, Word16, Word32, Word64, Word)
+import Data.List as L
+import Data.Maybe         (mapMaybe)
+import Data.Monoid        -- (mempty, (<>))
+import Data.Foldable      (foldMap)
+import Data.Traversable   (traverse)
+import Data.Word          (Word8, Word16, Word32, Word64, Word)
 import           Data.Map (Map)
 import qualified Data.Map as M
 import           Data.Set (Set)
@@ -117,7 +132,9 @@ import           Data.Version
 import           Text.PrettyPrint hiding ((<>))
 import qualified Text.ParserCombinators.ReadP as ReadP
 
-
+#if __GLASGOW_HASKELL__ >= 702
+import GHC.Generics
+#endif
 
 type Dict = Map ByteString BEncode
 
@@ -137,12 +154,123 @@ type Result = Either String
 
 class BEncodable a where
   toBEncode   :: a -> BEncode
+
+#if __GLASGOW_HASKELL__ >= 702
+  default toBEncode
+    :: Generic a
+    => GBEncodable (Rep a) BEncode
+    => a -> BEncode
+
+  toBEncode = gto . from
+#endif
+
   fromBEncode :: BEncode -> Result a
 
+#if __GLASGOW_HASKELL__ >= 702
+  default fromBEncode :: GBEncodable (Rep a) BEncode => BEncode -> Result a
+  fromBEncode = error "default fromBEncode: not implemented"
+#endif
 
 decodingError :: String -> Result a
 decodingError s = Left ("fromBEncode: unable to decode " ++ s)
 {-# INLINE decodingError #-}
+
+{--------------------------------------------------------------------
+  Generics
+--------------------------------------------------------------------}
+
+{- NOTE: SELECTORS FOLDING/UNFOLDING
+Both List and Map are monoids:
+
+* if fields are named, we fold record to the map;
+* otherwise we collect fields using list;
+
+and then unify them using BDict and BList constrs.
+-}
+
+#if __GLASGOW_HASKELL__ >= 702
+
+class GBEncodable f e where
+  gto   :: f a -> e
+  gfrom :: e -> Result (f a)
+
+instance BEncodable f
+      => GBEncodable (K1 R f) BEncode where
+  {-# INLINE gto #-}
+  gto (K1 x) = toBEncode x
+
+  {-# INLINE gfrom #-}
+  gfrom = undefined
+
+instance Monoid e
+      => GBEncodable U1 e where
+  {-# INLINE gto #-}
+  gto U1 = mempty
+
+  {-# INLINE gfrom #-}
+  gfrom = undefined
+
+instance (GBEncodable a e, GBEncodable b e, Monoid e)
+      => GBEncodable (a :*: b) e where
+  {-# INLINE gto #-}
+  gto (a :*: b) = gto a <> gto b
+
+  {-# INLINE gfrom #-}
+  gfrom = undefined
+
+instance (GBEncodable a e, GBEncodable b e)
+      =>  GBEncodable (a :+: b) e where
+  {-# INLINE gto #-}
+  gto (L1 x) = gto x
+  gto (R1 x) = gto x
+
+  {-# INLINE gfrom #-}
+  gfrom = undefined
+
+instance (Selector s, GBEncodable f BEncode)
+       => GBEncodable (M1 S s f) Dict where
+  {-# INLINE gto #-}
+  gto s @ (M1 x)
+      | True || L.null sel = BC.pack sel `M.singleton` gto x
+--      | otherwise  = undefined
+    where
+      sel = selName s
+
+  {-# INLINE gfrom #-}
+  gfrom = undefined
+
+-- TODO DList
+instance GBEncodable f BEncode
+      => GBEncodable (M1 S s f) [BEncode] where
+  {-# INLINE gto #-}
+  gto (M1 x) = [gto x]
+
+  gfrom = undefined
+  {-# INLINE gfrom #-}
+
+instance (Constructor c, GBEncodable f Dict, GBEncodable f [BEncode])
+       => GBEncodable (M1 C c f) BEncode where
+  {-# INLINE gto #-}
+  gto con @ (M1 x)
+      | conIsRecord con = BDict (gto x)
+      |    otherwise    = BList (gto x)
+
+  {-# INLINE gfrom #-}
+  gfrom = undefined
+
+instance GBEncodable f e
+      => GBEncodable (M1 D d f) e where
+  {-# INLINE gto #-}
+  gto (M1 x) = gto x
+
+  {-# INLINE gfrom #-}
+  gfrom = undefined
+
+#endif
+
+{--------------------------------------------------------------------
+  Basic instances
+--------------------------------------------------------------------}
 
 instance BEncodable BEncode where
   {-# SPECIALIZE instance BEncodable BEncode #-}
