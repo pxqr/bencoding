@@ -1,4 +1,6 @@
--- TODO: make int's instances platform independent so we can make library portable.
+-- TODO: make int's instances platform independent so we can make
+-- library portable.
+
 -- |
 --   Copyright   :  (c) Sam T. 2013
 --   License     :  MIT
@@ -6,8 +8,9 @@
 --   Stability   :  stable
 --   Portability :  non-portable
 --
---   This module provides convinient and fast way to serialize, deserealize
---   and construct/destructure Bencoded values with optional fields.
+--   This module provides convinient and fast way to serialize,
+--   deserealize and construct/destructure Bencoded values with
+--   optional fields.
 --
 --   It supports four different types of values:
 --
@@ -19,9 +22,10 @@
 --
 --     * dictionaries — represented as 'Map';
 --
---    To serialize any other types we need to make conversion.
---    To make conversion more convenient there is type class for it: 'BEncodable'.
---    Any textual strings are considered as UTF8 encoded 'Text'.
+--    To serialize any other types we need to make conversion.  To
+--    make conversion more convenient there is type class for it:
+--    'BEncodable'. Any textual strings are considered as UTF8 encoded
+--    'Text'.
 --
 --    The complete Augmented BNF syntax for bencoding format is:
 --
@@ -42,30 +46,47 @@
 --    This module is considered to be imported qualified.
 --
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE Trustworthy       #-}
 module Data.BEncode
        ( -- * Datatype
          BEncode(..)
+       , Dict
 
          -- * Construction && Destructuring
-       , BEncodable (..), dictAssoc, Result
+       , BEncodable (..)
+       , dictAssoc
+       , Result
 
          -- ** Dictionaries
          -- *** Building
-       , (-->), (-->?), fromAssocs, fromAscAssocs
+       , (-->)
+       , (-->?)
+       , fromAssocs
+       , fromAscAssocs
 
          -- *** Extraction
-       , reqKey, optKey, (>--), (>--?)
+       , reqKey
+       , optKey
+       , (>--)
+       , (>--?)
 
          -- * Serialization
-       , encode, decode
-       , encoded, decoded
+       , encode
+       , decode
+       , encoded
+       , decoded
 
          -- * Predicates
-       , isInteger, isString, isList, isDict
+       , isInteger
+       , isString
+       , isList
+       , isDict
 
          -- * Extra
-       , builder, parser, decodingError, printPretty
+       , builder
+       , parser
+       , decodingError
+       , printPretty
        ) where
 
 
@@ -100,11 +121,11 @@ import qualified Text.ParserCombinators.ReadP as ReadP
 
 type Dict = Map ByteString BEncode
 
--- | 'BEncode' is straightforward ADT for b-encoded values.
---   Please note that since dictionaries are sorted, in most cases we can
---   compare BEncoded values without serialization and vice versa.
---   Lists is not required to be sorted through.
---   Also note that 'BEncode' have JSON-like instance for 'Pretty'.
+-- | 'BEncode' is straightforward ADT for b-encoded values. Please
+-- note that since dictionaries are sorted, in most cases we can
+-- compare BEncoded values without serialization and vice versa.
+-- Lists is not required to be sorted through.  Also note that
+-- 'BEncode' have JSON-like instance for 'Pretty'.
 --
 data BEncode = BInteger {-# UNPACK #-} !Int64
              | BString  !ByteString
@@ -310,8 +331,8 @@ fromAssocs :: [Assoc] -> BEncode
 fromAssocs = BDict . M.fromList . mkAssocs
 {-# INLINE fromAssocs #-}
 
--- | A faster version of 'fromAssocs'.
---   Should be used only when keys are sorted by ascending.
+-- | A faster version of 'fromAssocs'. Should be used only when keys
+-- are sorted by ascending.
 fromAscAssocs :: [Assoc] -> BEncode
 fromAscAssocs = BDict . M.fromList . mkAssocs
 {-# INLINE fromAscAssocs #-}
@@ -320,22 +341,24 @@ fromAscAssocs = BDict . M.fromList . mkAssocs
   Extraction
 --------------------------------------------------------------------}
 
-reqKey :: BEncodable a => Map ByteString BEncode -> ByteString -> Result a
+reqKey :: BEncodable a => Dict -> ByteString -> Result a
 reqKey d key
   | Just b <- M.lookup key d = fromBEncode b
-  |        otherwise         = Left ("required field `" ++ BC.unpack key ++ "' not found")
+  |        otherwise         = Left msg
+  where
+    msg = "required field `" ++ BC.unpack key ++ "' not found"
 
-optKey :: BEncodable a => Map ByteString BEncode -> ByteString -> Result (Maybe a)
+optKey :: BEncodable a => Dict -> ByteString -> Result (Maybe a)
 optKey d key
   | Just b <- M.lookup key d
   , Right r <- fromBEncode b = return (Just r)
   | otherwise                = return Nothing
 
-(>--) :: BEncodable a => Map ByteString BEncode -> ByteString -> Result a
+(>--) :: BEncodable a => Dict -> ByteString -> Result a
 (>--) = reqKey
 {-# INLINE (>--) #-}
 
-(>--?) :: BEncodable a => Map ByteString BEncode -> ByteString -> Result (Maybe a)
+(>--?) :: BEncodable a => Dict -> ByteString -> Result (Maybe a)
 (>--?) = optKey
 {-# INLINE (>--?) #-}
 
@@ -420,7 +443,8 @@ parser = valueP
               'l' -> P.anyChar *> ((BList    <$> listBody) <* P.anyChar)
               'd' -> do
                      P.anyChar
-                     (BDict . M.fromDistinctAscList <$> many ((,) <$> stringP <*> valueP))
+                     (BDict . M.fromDistinctAscList <$>
+                          many ((,) <$> stringP <*> valueP))
                        <* P.anyChar
               t   -> fail ("bencode unknown tag: " ++ [t])
 
@@ -458,10 +482,11 @@ ppBS :: ByteString -> Doc
 ppBS = text . map w2c . B.unpack
 
 ppBEncode :: BEncode -> Doc
-ppBEncode (BInteger i) = int (fromIntegral i)
+ppBEncode (BInteger i) = int $ fromIntegral i
 ppBEncode (BString  s) = ppBS s
-ppBEncode (BList    l) = brackets $ hsep (punctuate comma (map ppBEncode l))
-ppBEncode (BDict    d) = braces $ vcat (punctuate comma (map ppKV (M.toAscList d)))
+ppBEncode (BList    l) = brackets $ hsep $ punctuate comma $ map ppBEncode l
+ppBEncode (BDict    d)
+    = braces $ vcat $ punctuate comma $ map ppKV $ M.toAscList d
   where
     ppKV (k, v) = ppBS k <+> colon <+> ppBEncode v
 
