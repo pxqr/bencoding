@@ -15,7 +15,6 @@ import             Data.AttoBencode as B
 import             Data.AttoBencode.Parser as B
 import "bencoding" Data.BEncode     as C
 
-
 instance NFData A.BEncode where
     rnf (A.BInt    i) = rnf i
     rnf (A.BString s) = rnf s
@@ -28,15 +27,8 @@ instance NFData B.BValue where
     rnf (B.BList   l) = rnf l
     rnf (B.BDict   d) = rnf d
 
-instance NFData C.BEncode where
-    rnf (C.BInteger i) = rnf i
-    rnf (C.BString  s) = rnf s
-    rnf (C.BList    l) = rnf l
-    rnf (C.BDict    d) = rnf d
-
 getRight :: Either String a -> a
-getRight (Left e) = error e
-getRight (Right x) = x
+getRight = either error id
 
 main :: IO ()
 main = do

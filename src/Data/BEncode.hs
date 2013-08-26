@@ -102,6 +102,7 @@ module Data.BEncode
 
 
 import Control.Applicative
+import Control.DeepSeq
 import Control.Monad
 import Data.Int
 import Data.Maybe         (mapMaybe)
@@ -145,6 +146,12 @@ data BEncode = BInteger {-# UNPACK #-} !Int64
              | BList    [BEncode]
              | BDict    Dict
                deriving (Show, Read, Eq, Ord)
+
+instance NFData BEncode where
+    rnf (BInteger i) = rnf i
+    rnf (BString  s) = rnf s
+    rnf (BList    l) = rnf l
+    rnf (BDict    d) = rnf d
 
 -- | Result used in decoding operations.
 type Result = Either String
