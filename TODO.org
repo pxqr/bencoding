@@ -1,4 +1,4 @@
-* TODO generic decode
+* DONE generic decode
 * TODO tests for generics with record selectors
 * TODO documentation
 * TODO v0.1.1.0 (reason: Dict ty syn exposed)

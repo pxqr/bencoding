@@ -55,6 +55,7 @@
 {-# LANGUAGE FlexibleContexts       #-}
 {-# LANGUAGE FlexibleInstances      #-}
 {-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
 #endif
 
 module Data.BEncode
@@ -162,8 +163,12 @@ class BEncodable a where
   fromBEncode :: BEncode -> Result a
 
 #if __GLASGOW_HASKELL__ >= 702
-  default fromBEncode :: GBEncodable (Rep a) BEncode => BEncode -> Result a
-  fromBEncode = error "default fromBEncode: not implemented"
+  default fromBEncode
+    :: Generic a
+    => GBEncodable (Rep a) BEncode
+    => BEncode -> Result a
+
+  fromBEncode x = to <$> gfrom x
 #endif
 
 decodingError :: String -> Result a
@@ -192,26 +197,38 @@ class GBEncodable f e where
 instance BEncodable f
       => GBEncodable (K1 R f) BEncode where
   {-# INLINE gto #-}
-  gto (K1 x) = toBEncode x
+  gto = toBEncode . unK1
 
   {-# INLINE gfrom #-}
-  gfrom = undefined
+  gfrom x = K1 <$> fromBEncode x
 
-instance Monoid e
+instance (Eq e, Monoid e)
       => GBEncodable U1 e where
   {-# INLINE gto #-}
   gto U1 = mempty
 
   {-# INLINE gfrom #-}
-  gfrom = undefined
+  gfrom x
+    | x == mempty = pure U1
+    |   otherwise = decodingError "U1"
 
-instance (GBEncodable a e, GBEncodable b e, Monoid e)
-      => GBEncodable (a :*: b) e where
+instance (GBEncodable a [BEncode], GBEncodable b [BEncode])
+      => GBEncodable (a :*: b) [BEncode] where
+  {-# INLINE gto #-}
+  gto (a :*: b) = gto a ++ gto b
+
+  {-# INLINE gfrom #-}
+  gfrom (x : xs) = (:*:) <$> gfrom [x] <*> gfrom xs
+  gfrom []       = decodingError "generic: not enough fields"
+
+instance (GBEncodable a Dict, GBEncodable b Dict)
+      => GBEncodable (a :*: b) Dict where
   {-# INLINE gto #-}
   gto (a :*: b) = gto a <> gto b
 
   {-# INLINE gfrom #-}
-  gfrom = undefined
+  gfrom = error "gfrom: not implemented"
+
 
 instance (GBEncodable a e, GBEncodable b e)
       =>  GBEncodable (a :+: b) e where
@@ -220,7 +237,21 @@ instance (GBEncodable a e, GBEncodable b e)
   gto (R1 x) = gto x
 
   {-# INLINE gfrom #-}
-  gfrom = undefined
+  gfrom x = case gfrom x of
+    Right lv -> return (L1 lv)
+    Left  le -> do
+      case gfrom x of
+        Right rv -> return (R1 rv)
+        Left  re -> decodingError $ "generic: both" ++ le ++ " " ++ re
+
+gfromM1S :: forall c. Selector c
+         => GBEncodable f BEncode
+         => Dict -> Result (M1 i c f p)
+gfromM1S dict
+  | Just va <- M.lookup (BC.pack name) dict = M1 <$> gfrom va
+  | otherwise = decodingError $ "generic: Selector not found " ++ show name
+  where
+    name = selName (error "gfromM1S: impossible" :: M1 i c f p)
 
 instance (Selector s, GBEncodable f BEncode)
        => GBEncodable (M1 S s f) Dict where
@@ -228,7 +259,7 @@ instance (Selector s, GBEncodable f BEncode)
   gto s @ (M1 x) = BC.pack (selName s) `M.singleton` gto x
 
   {-# INLINE gfrom #-}
-  gfrom = undefined
+  gfrom = gfromM1S
 
 -- TODO DList
 instance GBEncodable f BEncode
@@ -236,7 +267,8 @@ instance GBEncodable f BEncode
   {-# INLINE gto #-}
   gto (M1 x) = [gto x]
 
-  gfrom = undefined
+  gfrom [x] = M1 <$> gfrom x
+  gfrom _   = decodingError "generic: empty selector"
   {-# INLINE gfrom #-}
 
 instance (Constructor c, GBEncodable f Dict, GBEncodable f [BEncode])
@@ -247,7 +279,9 @@ instance (Constructor c, GBEncodable f Dict, GBEncodable f [BEncode])
       |    otherwise    = BList (gto x)
 
   {-# INLINE gfrom #-}
-  gfrom = undefined
+  gfrom (BDict a) = M1 <$> gfrom a
+  gfrom (BList a) = M1 <$> gfrom a
+  gfrom _         = decodingError "generic: Constr"
 
 instance GBEncodable f e
       => GBEncodable (M1 D d f) e where
@@ -255,7 +289,7 @@ instance GBEncodable f e
   gto (M1 x) = gto x
 
   {-# INLINE gfrom #-}
-  gfrom = undefined
+  gfrom x = M1 <$> gfrom x
 
 #endif
 
