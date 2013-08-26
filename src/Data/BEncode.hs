@@ -456,15 +456,9 @@ instance BEncodable Version where
   fromBEncode _ = decodingError "Data.Version"
   {-# INLINE fromBEncode #-}
 
-dictAssoc :: [(ByteString, BEncode)] -> BEncode
-dictAssoc = BDict . M.fromList
-{-# INLINE dictAssoc #-}
-
 {--------------------------------------------------------------------
   Building dictionaries
 --------------------------------------------------------------------}
-
--- TODO Assoc = Maybe (ByteString, BEncode)
 
 -- | /Assoc/ used to easily build dictionaries with required and
 -- optional keys. Suppose we have we following datatype we want to
@@ -490,37 +484,29 @@ dictAssoc = BDict . M.fromList
 --  >     , "tags"   -->? fileTags
 --  >     ]
 --
-data Assoc = Required ByteString BEncode
-           | Optional ByteString (Maybe BEncode)
+newtype Assoc = Assoc { unAssoc :: Maybe (ByteString, BEncode) }
 
 -- | Make required key value pair.
 (-->) :: BEncodable a => ByteString -> a -> Assoc
-key --> val = Required key (toBEncode val)
+key --> val = Assoc $ Just $ (key, toBEncode val)
 {-# INLINE (-->) #-}
 
 -- | Like (-->) but if the value is not present then the key do not
 -- appear in resulting bencoded dictionary.
 --
 (-->?) :: BEncodable a => ByteString -> Maybe a -> Assoc
-key -->? mval = Optional key (toBEncode <$> mval)
+key -->? mval = Assoc $ ((,) key . toBEncode) <$> mval
 {-# INLINE (-->?) #-}
-
-mkAssocs :: [Assoc] -> [(ByteString, BEncode)]
-mkAssocs = mapMaybe unpackAssoc
-  where
-    unpackAssoc (Required n v)        = Just (n, v)
-    unpackAssoc (Optional n (Just v)) = Just (n, v)
-    unpackAssoc (Optional _ Nothing)  = Nothing
 
 -- | Build BEncode dictionary using key -> value description.
 fromAssocs :: [Assoc] -> BEncode
-fromAssocs = BDict . M.fromList . mkAssocs
+fromAssocs = BDict . M.fromList . mapMaybe unAssoc
 {-# INLINE fromAssocs #-}
 
 -- | A faster version of 'fromAssocs'. Should be used only when keys
 -- in builder list are sorted by ascending.
 fromAscAssocs :: [Assoc] -> BEncode
-fromAscAssocs = BDict . M.fromList . mkAssocs
+fromAscAssocs = BDict . M.fromAscList . mapMaybe unAssoc
 {-# INLINE fromAscAssocs #-}
 
 {--------------------------------------------------------------------

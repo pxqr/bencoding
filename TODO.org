@@ -3,4 +3,5 @@
 * TODO lens compatible selectors renaming
 * TODO benchmarks for generic decode
 * TODO documentation
-* TODO v0.1.1.0 (reason: Dict ty syn exposed)
+* TODO v0.2.0.0 (reason: dictAssoc is hidded now)
+* TODO use HashMap
