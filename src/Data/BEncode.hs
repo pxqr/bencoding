@@ -549,24 +549,28 @@ optKey d key
 {-# INLINE (>--?) #-}
 
 {--------------------------------------------------------------------
-  Predicated
+  Predicates
 --------------------------------------------------------------------}
 
+-- | Test if bencoded value is an integer.
 isInteger :: BEncode -> Bool
 isInteger (BInteger _) = True
 isInteger _            = False
 {-# INLINE isInteger #-}
 
+-- | Test if bencoded value is a string, both raw and utf8 encoded.
 isString :: BEncode -> Bool
 isString (BString _) = True
 isString _           = False
 {-# INLINE isString #-}
 
+-- | Test if bencoded value is a list.
 isList :: BEncode -> Bool
 isList (BList _) = True
 isList _         = False
 {-# INLINE isList #-}
 
+-- | Test if bencoded value is a dictionary.
 isDict :: BEncode -> Bool
 isDict (BList _) = True
 isDict _         = False
