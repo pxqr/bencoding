@@ -483,6 +483,7 @@ instance BEncodable Version where
 --  >     , "path"   -->  filePath
 --  >     , "tags"   -->? fileTags
 --  >     ]
+--  >     ...
 --
 newtype Assoc = Assoc { unAssoc :: Maybe (ByteString, BEncode) }
 
@@ -510,9 +511,25 @@ fromAscAssocs = BDict . M.fromAscList . mapMaybe unAssoc
 {-# INLINE fromAscAssocs #-}
 
 {--------------------------------------------------------------------
-  Extraction
+  Dictionary extraction
 --------------------------------------------------------------------}
 
+-- | Dictionary extractor are similar to dictionary builders, but play
+-- the opposite role: they are used to define 'fromBEncode' method in
+-- declarative style. Using the same /FileInfo/ datatype 'fromBEncode'
+-- looks like:
+--
+--  > instance BEncodable FileInfo where
+--  >   ...
+--  >   fromBEncode (BDict d) =
+--  >     FileInfo <$> d >--  "length"
+--  >              <*> d >--? "md5sum"
+--  >              <*> d >--  "path"
+--  >              <*> d >--? "tags"
+--  >   fromBEncode _ = decodingError "FileInfo"
+--
+--  The /reqKey/ is used to extract required key — if lookup is failed
+--  then whole destructuring fail.
 reqKey :: BEncodable a => Dict -> ByteString -> Result a
 reqKey d key
   | Just b <- M.lookup key d = fromBEncode b
@@ -520,16 +537,20 @@ reqKey d key
   where
     msg = "required field `" ++ BC.unpack key ++ "' not found"
 
+-- | Used to extract optional key — if lookup is failed returns
+-- 'Nothing'.
 optKey :: BEncodable a => Dict -> ByteString -> Result (Maybe a)
 optKey d key
   | Just b <- M.lookup key d
   , Right r <- fromBEncode b = return (Just r)
   | otherwise                = return Nothing
 
+-- | Infix version of the 'reqKey'.
 (>--) :: BEncodable a => Dict -> ByteString -> Result a
 (>--) = reqKey
 {-# INLINE (>--) #-}
 
+-- | Infix version of the 'optKey'.
 (>--?) :: BEncodable a => Dict -> ByteString -> Result (Maybe a)
 (>--?) = optKey
 {-# INLINE (>--?) #-}
@@ -603,7 +624,7 @@ builder = go
                       B.byteString s
       {-# INLINE buildString #-}
 
--- | TODO try to replace peekChar with something else
+-- TODO try to replace peekChar with something else
 parser :: Parser BEncode
 parser = valueP
   where
