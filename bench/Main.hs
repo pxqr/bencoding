@@ -15,6 +15,7 @@ import             Data.AttoBencode as B
 import             Data.AttoBencode.Parser as B
 import "bencoding" Data.BEncode     as C
 
+
 instance NFData A.BEncode where
     rnf (A.BInt    i) = rnf i
     rnf (A.BString s) = rnf s
@@ -41,9 +42,12 @@ main = do
 
   withArgs args $
        defaultMain
-       [ bench "decode/bencode"     $ nf A.bRead                            lazyTorrentFile
-       , bench "decode/AttoBencode" $ nf (getRight . Atto.parseOnly bValue) torrentFile
-       , bench "decode/bencoding"   $ nf (getRight . C.decode)              torrentFile
+       [ bench "decode/bencode"     $
+           nf A.bRead                            lazyTorrentFile
+       , bench "decode/AttoBencode" $
+           nf (getRight . Atto.parseOnly bValue) torrentFile
+       , bench "decode/bencoding"   $
+           nf (getRight . C.decode)              torrentFile
 
        , let Just v = A.bRead lazyTorrentFile in
          bench "encode/bencode"     $ nf A.bPack v
@@ -52,19 +56,21 @@ main = do
        , let Right v = C.decode torrentFile in
          bench "encode/bencoding"   $ nf C.encode v
 
-       , bench "decode+encode/bencode"     $ nf (A.bPack  . fromJust . A.bRead)
-               lazyTorrentFile
-       , bench "decode+encode/AttoBencode" $ nf (B.encode . getRight . Atto.parseOnly bValue)
-               torrentFile
-       , bench "decode+encode/bencoding"   $ nf (C.encode . getRight . C.decode)
-               torrentFile
+       , bench "decode+encode/bencode"     $
+           nf (A.bPack  . fromJust . A.bRead) lazyTorrentFile
+       , bench "decode+encode/AttoBencode" $
+           nf (B.encode . getRight . Atto.parseOnly bValue) torrentFile
+       , bench "decode+encode/bencoding"   $
+           nf (C.encode . getRight . C.decode) torrentFile
 
-       , bench "list10000int/bencode/encode" $ nf
-           (A.bPack . A.BList . L.map (A.BInt . fromIntegral))
-             [0..10000 :: Int]
+       , bench "list10000int/bencode/encode" $
+           nf (A.bPack . A.BList . L.map (A.BInt . fromIntegral))
+              [0..10000 :: Int]
 
-       , bench "list10000int/attobencode/encode" $ nf B.encode [1..20000 :: Int]
-       , bench "list10000int/bencoding/encode" $ nf C.encoded [1..20000 :: Int]
+       , bench "list10000int/attobencode/encode" $
+           nf B.encode [1..20000 :: Int]
+       , bench "list10000int/bencoding/encode" $
+           nf C.encoded [1..20000 :: Int]
 
 
        , let d = A.bPack $ A.BList $
@@ -81,6 +87,8 @@ main = do
             (C.decoded :: B.ByteString -> Either String [Int]) d)
 
        , let d = L.replicate 10000 0
-         in bench "list10000int/bencoding/encode>>decode" $ nf
-            (getRight . C.decoded . BL.toStrict . C.encoded :: [Int] ->  [Int] ) d
+         in bench "list10000int/bencoding/encode>>decode" $
+            nf  (getRight . C.decoded . BL.toStrict . C.encoded
+                 :: [Int] ->  [Int] )
+                d
        ]
