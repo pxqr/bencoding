@@ -121,7 +121,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.ByteString.Lazy.Builder as B
-import qualified Data.ByteString.Lazy.Builder.ASCII as ASCII
+import qualified Data.ByteString.Lazy.Builder.ASCII as B
 import           Data.ByteString.Internal as B (c2w, w2c)
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as T
@@ -652,7 +652,7 @@ builder :: BEncode -> B.Builder
 builder = go
     where
       go (BInteger i) = B.word8 (c2w 'i') <>
-                        ASCII.int64Dec i <>
+                        B.int64Dec i <>
                         B.word8 (c2w 'e')
       go (BString  s) = buildString s
       go (BList    l) = B.word8 (c2w 'l') <>
@@ -664,7 +664,7 @@ builder = go
           where
             mkKV (k, v) = buildString k <> go v
 
-      buildString s = ASCII.intDec (B.length s) <>
+      buildString s = B.intDec (B.length s) <>
                       B.word8 (c2w ':') <>
                       B.byteString s
       {-# INLINE buildString #-}
