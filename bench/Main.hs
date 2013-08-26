@@ -1,4 +1,5 @@
 {-# LANGUAGE PackageImports #-}
+{-# LANGUAGE DeriveGeneric  #-}
 module Main (main) where
 
 import Control.DeepSeq
@@ -9,6 +10,8 @@ import Data.ByteString.Lazy as BL
 import Data.List as L
 import Criterion.Main
 import System.Environment
+
+import GHC.Generics
 
 import "bencode"   Data.BEncode     as A
 import             Data.AttoBencode as B
@@ -30,6 +33,23 @@ instance NFData B.BValue where
 
 getRight :: Either String a -> a
 getRight = either error id
+
+data List a = Cons a (List a) | Nil
+              deriving Generic
+
+instance BEncodable a => BEncodable (List a)
+
+instance NFData a => NFData (List a) where
+  rnf  Nil        = ()
+  rnf (Cons x xs) = rnf (x, xs)
+
+replicate' :: Int -> a -> List a
+replicate' c x
+    |   c >= 0  = go c
+    | otherwise = Nil
+  where
+    go 0 = Nil
+    go n = Cons x $ go (pred n)
 
 main :: IO ()
 main = do
@@ -91,4 +111,10 @@ main = do
             nf  (getRight . C.decoded . BL.toStrict . C.encoded
                  :: [Int] ->  [Int] )
                 d
+
+       , let d = replicate' 10000 0
+         in bench "list10000int/bencoding/encode>>decode/generic" $
+            nf (getRight . C.decoded . BL.toStrict . C.encoded
+                :: List Int -> List Int)
+               d
        ]
