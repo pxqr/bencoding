@@ -62,10 +62,17 @@ module Data.BEncode
        ( -- * Datatype
          BEncode(..)
        , Dict
+       , ppBEncode
 
-         -- * Construction && Destructuring
+         -- * Conversion
        , BEncodable (..)
        , Result
+
+         -- * Serialization
+       , encode
+       , decode
+       , encoded
+       , decoded
 
          -- ** Dictionaries
          -- *** Building
@@ -76,16 +83,11 @@ module Data.BEncode
        , fromAscAssocs
 
          -- *** Extraction
+       , decodingError
        , reqKey
        , optKey
        , (>--)
        , (>--?)
-
-         -- * Serialization
-       , encode
-       , decode
-       , encoded
-       , decoded
 
          -- * Predicates
        , isInteger
@@ -96,8 +98,6 @@ module Data.BEncode
          -- * Extra
        , builder
        , parser
-       , decodingError
-       , printPretty
        ) where
 
 
@@ -132,13 +132,13 @@ import qualified Text.ParserCombinators.ReadP as ReadP
 import GHC.Generics
 #endif
 
+-- | BEncode key-value dictionary.
 type Dict = Map ByteString BEncode
 
 -- | 'BEncode' is straightforward ADT for b-encoded values. Please
 -- note that since dictionaries are sorted, in most cases we can
 -- compare BEncoded values without serialization and vice versa.
--- Lists is not required to be sorted through.  Also note that
--- 'BEncode' have JSON-like instance for 'Pretty'.
+-- Lists is not required to be sorted through.
 --
 data BEncode = BInteger {-# UNPACK #-} !Int64
              | BString  !ByteString
@@ -149,7 +149,10 @@ data BEncode = BInteger {-# UNPACK #-} !Int64
 -- | Result used in decoding operations.
 type Result = Either String
 
+-- | This class is used to define new datatypes that could be easily
+-- serialized using bencode format.
 class BEncodable a where
+  -- | See an example of implementation here 'Assoc'
   toBEncode   :: a -> BEncode
 
 #if __GLASGOW_HASKELL__ >= 702
@@ -161,6 +164,7 @@ class BEncodable a where
   toBEncode = gto . from
 #endif
 
+  -- | See an example of implementation here 'reqKey'.
   fromBEncode :: BEncode -> Result a
 
 #if __GLASGOW_HASKELL__ >= 702
@@ -172,6 +176,8 @@ class BEncodable a where
   fromBEncode x = to <$> gfrom x
 #endif
 
+-- | Typically used to throw an decoding error in fromBEncode; when
+-- BEncode value to match expected value.
 decodingError :: String -> Result a
 decodingError s = Left ("fromBEncode: unable to decode " ++ s)
 {-# INLINE decodingError #-}
@@ -587,15 +593,21 @@ isDict _         = False
   Encoding
 --------------------------------------------------------------------}
 
+-- | Convert bencoded value to raw bytestring according to the
+-- specification.
 encode :: BEncode -> Lazy.ByteString
 encode = B.toLazyByteString . builder
 
+-- | Try to convert raw bytestring to bencoded value according to
+-- specification.
 decode :: ByteString -> Result BEncode
 decode = P.parseOnly parser
 
+-- | The same as 'decode' but returns any bencodable value.
 decoded :: BEncodable a => ByteString -> Result a
 decoded = decode >=> fromBEncode
 
+-- | The same as 'encode' but takes any bencodable value.
 encoded :: BEncodable a => a -> Lazy.ByteString
 encoded = encode . toBEncode
 
@@ -603,6 +615,7 @@ encoded = encode . toBEncode
   Internals
 --------------------------------------------------------------------}
 
+-- | BEncode format encoder according to specification.
 builder :: BEncode -> B.Builder
 builder = go
     where
@@ -625,6 +638,7 @@ builder = go
       {-# INLINE buildString #-}
 
 -- TODO try to replace peekChar with something else
+-- | BEncode format parser according to specification.
 parser :: Parser BEncode
 parser = valueP
   where
@@ -672,12 +686,11 @@ parser = valueP
   Pretty Printing
 --------------------------------------------------------------------}
 
-printPretty :: BEncode -> IO ()
-printPretty = print . ppBEncode
-
 ppBS :: ByteString -> Doc
 ppBS = text . map w2c . B.unpack
 
+-- | Convert to easily readable JSON-like document. Typically used for
+-- debugging purposes.
 ppBEncode :: BEncode -> Doc
 ppBEncode (BInteger i) = int $ fromIntegral i
 ppBEncode (BString  s) = ppBS s
