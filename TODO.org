@@ -2,6 +2,7 @@
 * DONE tests for generics with record selectors
 * TODO lens compatible selectors renaming
 * TODO benchmarks for generic decode
-* TODO documentation
+* DONE documentation
 * TODO v0.2.0.0 (reason: dictAssoc is hidded now)
 * TODO use HashMap
+* TODO CPS Result

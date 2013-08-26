@@ -10,5 +10,5 @@ main = do
   path : _ <- getArgs
   content  <- B.readFile path
   case decode content of
-    Left e -> hPutStrLn stderr e
-    Right be -> printPretty be
+    Left  e  -> hPutStrLn stderr e
+    Right be -> print $ ppBEncode be
