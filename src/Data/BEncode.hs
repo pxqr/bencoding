@@ -227,7 +227,8 @@ instance (GBEncodable a Dict, GBEncodable b Dict)
   gto (a :*: b) = gto a <> gto b
 
   {-# INLINE gfrom #-}
-  gfrom = error "gfrom: not implemented"
+  -- Just look at this! >.<
+  gfrom dict = (:*:) <$> gfrom dict <*> gfrom dict
 
 
 instance (GBEncodable a e, GBEncodable b e)

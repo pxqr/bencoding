@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# OPTIONS  -fno-warn-unused-binds #-}
 module Main (main) where
 
 import Control.Applicative
@@ -39,14 +40,30 @@ instance Arbitrary a => Arbitrary (List a) where
     , (10, Cons <$> arbitrary <*> arbitrary)
     ]
 
+data FileInfo = FileInfo
+  { fiLength :: !Integer
+  , fiPath   :: [B.ByteString]
+  , fiMD5Sum :: B.ByteString
+  } deriving (Show, Eq, Generic)
+
+instance BEncodable FileInfo
+
+instance Arbitrary FileInfo where
+  arbitrary = FileInfo <$> arbitrary <*> arbitrary <*> arbitrary
+
 data T a = T
 
 prop_bencodable :: Eq a => BEncodable a => T a -> a -> Bool
 prop_bencodable _ x = decoded (L.toStrict (encoded x)) == Right x
 
+-- All tests are (encode >>> decode = id)
 main :: IO ()
 main = defaultMain
-       [ testProperty "encode >>> decode = id" prop_EncDec
-       , testProperty "generic encode >>> decode = id" $
+       [ testProperty "BEncode" prop_EncDec
+
+       , testProperty "generic recordless" $
             prop_bencodable (T :: T (List Int))
+
+       , testProperty "generic records" $
+            prop_bencodable (T :: T FileInfo)
        ]
