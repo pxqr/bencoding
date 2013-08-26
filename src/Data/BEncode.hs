@@ -65,11 +65,11 @@ module Data.BEncode
 
          -- * Construction && Destructuring
        , BEncodable (..)
-       , dictAssoc
        , Result
 
          -- ** Dictionaries
          -- *** Building
+       , Assoc
        , (-->)
        , (-->?)
        , fromAssocs
@@ -146,6 +146,7 @@ data BEncode = BInteger {-# UNPACK #-} !Int64
              | BDict    Dict
                deriving (Show, Read, Eq, Ord)
 
+-- | Result used in decoding operations.
 type Result = Either String
 
 class BEncodable a where
@@ -463,13 +464,43 @@ dictAssoc = BDict . M.fromList
   Building dictionaries
 --------------------------------------------------------------------}
 
+-- TODO Assoc = Maybe (ByteString, BEncode)
+
+-- | /Assoc/ used to easily build dictionaries with required and
+-- optional keys. Suppose we have we following datatype we want to
+-- serialize:
+--
+--  > data FileInfo = FileInfo
+--  >   { fileLength :: Integer
+--  >   , fileMD5sum :: Maybe ByteString
+--  >   , filePath   :: [ByteString]
+--  >   , fileTags   :: Maybe [Text]
+--  >   } deriving (Show, Read, Eq)
+--
+-- We need to make /instance BEncodable FileInfo/, though we don't
+-- want to check the both /maybes/ manually. The more declarative and
+-- convenient way to define the 'toBEncode' method is to use
+-- dictionary builders:
+--
+--  > instance BEncodable FileInfo where
+--  >   toBEncode FileInfo {..} = fromAssocs
+--  >     [ "length" -->  fileLength
+--  >     , "md5sum" -->? fileMD5sum
+--  >     , "path"   -->  filePath
+--  >     , "tags"   -->? fileTags
+--  >     ]
+--
 data Assoc = Required ByteString BEncode
            | Optional ByteString (Maybe BEncode)
 
+-- | Make required key value pair.
 (-->) :: BEncodable a => ByteString -> a -> Assoc
 key --> val = Required key (toBEncode val)
 {-# INLINE (-->) #-}
 
+-- | Like (-->) but if the value is not present then the key do not
+-- appear in resulting bencoded dictionary.
+--
 (-->?) :: BEncodable a => ByteString -> Maybe a -> Assoc
 key -->? mval = Optional key (toBEncode <$> mval)
 {-# INLINE (-->?) #-}
@@ -481,12 +512,13 @@ mkAssocs = mapMaybe unpackAssoc
     unpackAssoc (Optional n (Just v)) = Just (n, v)
     unpackAssoc (Optional _ Nothing)  = Nothing
 
+-- | Build BEncode dictionary using key -> value description.
 fromAssocs :: [Assoc] -> BEncode
 fromAssocs = BDict . M.fromList . mkAssocs
 {-# INLINE fromAssocs #-}
 
 -- | A faster version of 'fromAssocs'. Should be used only when keys
--- are sorted by ascending.
+-- in builder list are sorted by ascending.
 fromAscAssocs :: [Assoc] -> BEncode
 fromAscAssocs = BDict . M.fromList . mkAssocs
 {-# INLINE fromAscAssocs #-}

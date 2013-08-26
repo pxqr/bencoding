@@ -1,4 +1,6 @@
 * DONE generic decode
 * DONE tests for generics with record selectors
+* TODO lens compatible selectors renaming
+* TODO benchmarks for generic decode
 * TODO documentation
 * TODO v0.1.1.0 (reason: Dict ty syn exposed)
