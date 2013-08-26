@@ -158,6 +158,28 @@ type Result = Either String
 
 -- | This class is used to define new datatypes that could be easily
 -- serialized using bencode format.
+--
+--   By default 'BEncodable' have a generic implementation; suppose
+--   the following datatype:
+--
+-- > data List a = Cons { _head  :: a
+-- >                    , __tail :: (List a) }
+-- >             | Nil
+-- >               deriving Generic
+--
+--   If we don't need to obey any particular specification or
+--   standard, the default instance could be derived automatically
+--   from the 'Generic' instance:
+--
+-- > instance BEncodable a => BEncodable (List a)
+--
+--   Example of derived 'toBEncode' result:
+--
+-- > > toBEncode (Cons 123 $ Cons 1 Nil)
+-- > BDict (fromList [("head",BInteger 123),("tail",BList [])])
+--
+--  Note that '_' prefixes are omitted.
+--
 class BEncodable a where
   -- | See an example of implementation here 'Assoc'
   toBEncode   :: a -> BEncode

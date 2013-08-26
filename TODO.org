@@ -3,7 +3,7 @@
 * DONE lens compatible selectors renaming
 * DONE benchmarks for generic decode
 * DONE documentation
-* TODO document generics
+* DONE document generics
 * TODO v0.2.0.0 (reason: dictAssoc is hidded now)
 * TODO use HashMap
 * TODO CPS Result
