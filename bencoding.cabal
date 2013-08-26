@@ -1,5 +1,5 @@
 name:                  bencoding
-version:               0.1.0.1
+version:               0.2.0.0
 synopsis:              A library for encoding and decoding of BEncode data.
 homepage:              https://github.com/cobit/bencoding
 bug-reports:           https://github.com/cobit/bencoding/issues
@@ -19,6 +19,8 @@ description:
   [/Release notes/]
   .
     * /0.1.0.0:/ Initial version.
+  .
+    * /0.2.0.0:/ Added default decoders/encoders using GHC Generics.
 
 
 extra-source-files:    README.md
