@@ -1,17 +1,18 @@
-# Synopsis
+### Synopsis
 
 [BEncode][bencode] is [JSON][json-ref]-like format used in bittorrent
 protocol but might be used anywhere else.
 
-# Description
+### Description
 
 This package implements fast seamless encoding/decoding to/from
 bencode format for many native datatypes. To achive
-[more performance][cmp] we use [bytestring builders][bytestring-builder]
-and hand optimized [attoparsec][attoparsec] parser so this library is
-considered as replacement for BEncode and AttoBencode packages.
+[more performance][cmp] we use
+[bytestring builders][bytestring-builder] and hand optimized
+[attoparsec][attoparsec] parser so this library is considered as
+replacement for BEncode and AttoBencode packages.
 
-## Format
+#### Format
 
 Bencode is pretty similar to JSON: it has dictionaries(JSON objects),
 lists(JSON arrays), strings and integers. However bencode has a few
@@ -31,27 +32,29 @@ Hovewer there are some disadvantages comparing with JSON:
 * Bencode is certainly less human readable.
 * Bencode is rarely used, except bittorrent protocol of course.
 
-# Documentation
+### Documentation
 
-For documentation see haddock generated documentation.
+For documentation see package [hackage][hackage] page.
 
-# Build Status
+### Build Status
 
 [![Build Status][travis-img]][travis-log]
 
-# Authors
+### Maintainer <pxqr.sta@gmail.com>
 
-This library is written and maintained by Sam T. <pxqr.sta@gmail.com>
+Feel free to report bugs and suggestions via [issue tracker][issues]
+or the mail.
 
-Feel free to report bugs and suggestions via github issue tracker or the mail.
 
-
-[cmp]: http://htmlpreview.github.com/?https://github.com/pxqr/bencoding/master/bench/comparison.html
+[cmp]: http://htmlpreview.github.com/?https://raw.github.com/wiki/cobit/bencoding/comparison.html
 
 [bencode]: https://wiki.theory.org/BitTorrentSpecification#Bencoding
 [json-ref]: http://www.json.org/
 [attoparsec]: http://hackage.haskell.org/package/attoparsec-0.10.4.0
 [bytestring-builder]: http://hackage.haskell.org/packages/archive/bytestring/0.10.2.0/doc/html/Data-ByteString-Builder.html
 
-[travis-img]: https://travis-ci.org/pxqr/bencoding.png
-[travis-log]: https://travis-ci.org/pxqr/bencoding
+[travis-img]: https://travis-ci.org/cobit/bencoding.png
+[travis-log]: https://travis-ci.org/cobit/bencoding
+
+[hackage]: http://hackage.haskell.org/package/bencoding
+[issues]: https://github.com/cobit/bencoding/issues
