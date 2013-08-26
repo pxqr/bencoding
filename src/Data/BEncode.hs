@@ -259,11 +259,14 @@ instance (GBEncodable a e, GBEncodable b e)
         Right rv -> return (R1 rv)
         Left  re -> decodingError $ "generic: both" ++ le ++ " " ++ re
 
+selRename :: String -> String
+selRename = dropWhile ('_'==)
+
 gfromM1S :: forall c. Selector c
          => GBEncodable f BEncode
          => Dict -> Result (M1 i c f p)
 gfromM1S dict
-  | Just va <- M.lookup (BC.pack name) dict = M1 <$> gfrom va
+  | Just va <- M.lookup (BC.pack (selRename name)) dict = M1 <$> gfrom va
   | otherwise = decodingError $ "generic: Selector not found " ++ show name
   where
     name = selName (error "gfromM1S: impossible" :: M1 i c f p)
@@ -271,7 +274,7 @@ gfromM1S dict
 instance (Selector s, GBEncodable f BEncode)
        => GBEncodable (M1 S s f) Dict where
   {-# INLINE gto #-}
-  gto s @ (M1 x) = BC.pack (selName s) `M.singleton` gto x
+  gto s @ (M1 x) = BC.pack (selRename (selName s)) `M.singleton` gto x
 
   {-# INLINE gfrom #-}
   gfrom = gfromM1S
