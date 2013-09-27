@@ -436,17 +436,44 @@ instance BEncodable Word where
   fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
+instance BEncodable Int8 where
+  toBEncode = toBEncodeIntegral
+  {-# INLINE toBEncode #-}
+
+  fromBEncode = fromBEncodeIntegral
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Int16 where
+  toBEncode = toBEncodeIntegral
+  {-# INLINE toBEncode #-}
+
+  fromBEncode = fromBEncodeIntegral
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Int32 where
+  toBEncode = toBEncodeIntegral
+  {-# INLINE toBEncode #-}
+
+  fromBEncode = fromBEncodeIntegral
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Int64 where
+  toBEncode = toBEncodeIntegral
+  {-# INLINE toBEncode #-}
+
+  fromBEncode = fromBEncodeIntegral
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Int where
+  toBEncode = toBEncodeIntegral
+  {-# INLINE toBEncode #-}
+
+  fromBEncode = fromBEncodeIntegral
+  {-# INLINE fromBEncode #-}
+
 {--------------------------------------------------------------------
 --  Derived instances
 --------------------------------------------------------------------}
-
-instance BEncodable Int where
-  toBEncode = BInteger . fromIntegral
-  {-# INLINE toBEncode #-}
-
-  fromBEncode (BInteger i) = Right (fromIntegral i)
-  fromBEncode _            = decodingError "Int"
-  {-# INLINE fromBEncode #-}
 
 instance BEncodable Bool where
   toBEncode = toBEncode . fromEnum
