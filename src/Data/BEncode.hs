@@ -106,7 +106,6 @@ module Data.BEncode
 import Control.Applicative
 import Control.DeepSeq
 import Control.Monad
-import Data.Int
 import Data.Maybe         (mapMaybe)
 import Data.Monoid        -- (mempty, (<>))
 import Data.Foldable      (foldMap)
@@ -136,7 +135,7 @@ import GHC.Generics
 #endif
 
 
-type BInteger = Int64
+type BInteger = Integer
 type BString  = ByteString
 type BList    = [BEncode]
 type BDict    = Map BKey BEncode
@@ -147,7 +146,7 @@ type BKey     = ByteString
 -- compare BEncoded values without serialization and vice versa.
 -- Lists is not required to be sorted through.
 --
-data BEncode = BInteger {-# UNPACK #-} !BInteger -- ^ bencode integers;
+data BEncode = BInteger !BInteger -- ^ bencode integers;
              | BString  {-# UNPACK #-} !BString  -- ^ bencode strings;
              | BList    BList -- ^ list of bencode values;
              | BDict    BDict -- ^ bencode key-value dictionary.
@@ -658,7 +657,7 @@ builder :: BEncode -> B.Builder
 builder = go
     where
       go (BInteger i) = B.word8 (c2w 'i') <>
-                        B.int64Dec i <>
+                        B.integerDec i <>
                         B.word8 (c2w 'e')
       go (BString  s) = buildString s
       go (BList    l) = B.word8 (c2w 'l') <>
@@ -710,7 +709,7 @@ parser = valueP
       P.take n
     {-# INLINE stringP #-}
 
-    integerP :: Parser Int64
+    integerP :: Parser Integer
     integerP = do
       c <- P.peekChar
       case c of
@@ -770,7 +769,7 @@ instance BEncodable Word64 where
   fromBEncode b = (fromIntegral :: Int -> Word64) <$> fromBEncode b
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Word where -- TODO: make platform independent
+instance BEncodable Word where
   {-# SPECIALIZE instance BEncodable Word #-}
   toBEncode = toBEncode . (fromIntegral :: Word -> Int)
   {-# INLINE toBEncode #-}

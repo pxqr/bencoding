@@ -8,6 +8,7 @@
 * TODO fix portability issues
 make int's instances platform independent so we can make  library
 portable.
+BInteger = Integer
 * TODO rename BEncode to BValue
 * TODO use HashMap for dicts
 * TODO CPS Result
