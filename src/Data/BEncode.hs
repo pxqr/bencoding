@@ -1,6 +1,3 @@
--- TODO: make int's instances platform independent so we can make
--- library portable.
-
 -- |
 --   Copyright   :  (c) Sam Truzjan 2013
 --   License     :  BSD3
@@ -60,8 +57,13 @@
 
 module Data.BEncode
        ( -- * Datatype
-         BEncode(..)
-       , Dict
+         BInteger
+       , BString
+       , BList
+       , BDict
+       , BKey
+
+       , BEncode(..)
        , ppBEncode
 
          -- * Conversion
@@ -133,18 +135,22 @@ import qualified Text.ParserCombinators.ReadP as ReadP
 import GHC.Generics
 #endif
 
--- | BEncode key-value dictionary.
-type Dict = Map ByteString BEncode
+
+type BInteger = Int64
+type BString  = ByteString
+type BList    = [BEncode]
+type BDict    = Map BKey BEncode
+type BKey     = ByteString
 
 -- | 'BEncode' is straightforward ADT for b-encoded values. Please
 -- note that since dictionaries are sorted, in most cases we can
 -- compare BEncoded values without serialization and vice versa.
 -- Lists is not required to be sorted through.
 --
-data BEncode = BInteger {-# UNPACK #-} !Int64
-             | BString  !ByteString
-             | BList    [BEncode]
-             | BDict    Dict
+data BEncode = BInteger {-# UNPACK #-} !BInteger -- ^ bencode integers;
+             | BString  {-# UNPACK #-} !BString  -- ^ bencode strings;
+             | BList    BList -- ^ list of bencode values;
+             | BDict    BDict -- ^ bencode key-value dictionary.
                deriving (Show, Read, Eq, Ord)
 
 instance NFData BEncode where
@@ -248,8 +254,8 @@ instance (Eq e, Monoid e)
     | x == mempty = pure U1
     |   otherwise = decodingError "U1"
 
-instance (GBEncodable a [BEncode], GBEncodable b [BEncode])
-      => GBEncodable (a :*: b) [BEncode] where
+instance (GBEncodable a BList, GBEncodable b BList)
+      => GBEncodable (a :*: b) BList where
   {-# INLINE gto #-}
   gto (a :*: b) = gto a ++ gto b
 
@@ -257,8 +263,8 @@ instance (GBEncodable a [BEncode], GBEncodable b [BEncode])
   gfrom (x : xs) = (:*:) <$> gfrom [x] <*> gfrom xs
   gfrom []       = decodingError "generic: not enough fields"
 
-instance (GBEncodable a Dict, GBEncodable b Dict)
-      => GBEncodable (a :*: b) Dict where
+instance (GBEncodable a BDict, GBEncodable b BDict)
+      => GBEncodable (a :*: b) BDict where
   {-# INLINE gto #-}
   gto (a :*: b) = gto a <> gto b
 
@@ -286,7 +292,7 @@ selRename = dropWhile ('_'==)
 
 gfromM1S :: forall c. Selector c
          => GBEncodable f BEncode
-         => Dict -> Result (M1 i c f p)
+         => BDict -> Result (M1 i c f p)
 gfromM1S dict
   | Just va <- M.lookup (BC.pack (selRename name)) dict = M1 <$> gfrom va
   | otherwise = decodingError $ "generic: Selector not found " ++ show name
@@ -294,7 +300,7 @@ gfromM1S dict
     name = selName (error "gfromM1S: impossible" :: M1 i c f p)
 
 instance (Selector s, GBEncodable f BEncode)
-       => GBEncodable (M1 S s f) Dict where
+       => GBEncodable (M1 S s f) BDict where
   {-# INLINE gto #-}
   gto s @ (M1 x) = BC.pack (selRename (selName s)) `M.singleton` gto x
 
@@ -303,7 +309,7 @@ instance (Selector s, GBEncodable f BEncode)
 
 -- TODO DList
 instance GBEncodable f BEncode
-      => GBEncodable (M1 S s f) [BEncode] where
+      => GBEncodable (M1 S s f) BList where
   {-# INLINE gto #-}
   gto (M1 x) = [gto x]
 
@@ -311,7 +317,7 @@ instance GBEncodable f BEncode
   gfrom _   = decodingError "generic: empty selector"
   {-# INLINE gfrom #-}
 
-instance (Constructor c, GBEncodable f Dict, GBEncodable f [BEncode])
+instance (Constructor c, GBEncodable f BDict, GBEncodable f BList)
        => GBEncodable (M1 C c f) BEncode where
   {-# INLINE gto #-}
   gto con @ (M1 x)
@@ -568,7 +574,7 @@ fromAscAssocs = BDict . M.fromAscList . mapMaybe unAssoc
 --
 --  The /reqKey/ is used to extract required key — if lookup is failed
 --  then whole destructuring fail.
-reqKey :: BEncodable a => Dict -> ByteString -> Result a
+reqKey :: BEncodable a => BDict -> BKey -> Result a
 reqKey d key
   | Just b <- M.lookup key d = fromBEncode b
   |        otherwise         = Left msg
@@ -577,19 +583,19 @@ reqKey d key
 
 -- | Used to extract optional key — if lookup is failed returns
 -- 'Nothing'.
-optKey :: BEncodable a => Dict -> ByteString -> Result (Maybe a)
+optKey :: BEncodable a => BDict -> BKey -> Result (Maybe a)
 optKey d key
   | Just b <- M.lookup key d
   , Right r <- fromBEncode b = return (Just r)
   | otherwise                = return Nothing
 
 -- | Infix version of the 'reqKey'.
-(>--) :: BEncodable a => Dict -> ByteString -> Result a
+(>--) :: BEncodable a => BDict -> BKey -> Result a
 (>--) = reqKey
 {-# INLINE (>--) #-}
 
 -- | Infix version of the 'optKey'.
-(>--?) :: BEncodable a => Dict -> ByteString -> Result (Maybe a)
+(>--?) :: BEncodable a => BDict -> BKey -> Result (Maybe a)
 (>--?) = optKey
 {-# INLINE (>--?) #-}
 

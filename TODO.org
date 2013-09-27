@@ -5,5 +5,9 @@
 * DONE documentation
 * DONE document generics
 * DONE v0.2.0.0 (reason: dictAssoc is hidded now)
-* TODO use HashMap
+* TODO fix portability issues
+make int's instances platform independent so we can make  library
+portable.
+* TODO rename BEncode to BValue
+* TODO use HashMap for dicts
 * TODO CPS Result
