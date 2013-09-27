@@ -402,38 +402,38 @@ fromBEncodeIntegral _
 
 
 instance BEncodable Word8 where
-  toBEncode = toBEncode . (fromIntegral :: Word8 -> Word64)
+  toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
-  fromBEncode b = (fromIntegral :: Word64 -> Word8) <$> fromBEncode b
+  fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Word16 where
-  toBEncode = toBEncode . (fromIntegral :: Word16 -> Word64)
+  toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
-  fromBEncode b = (fromIntegral :: Word64 -> Word16) <$> fromBEncode b
+  fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Word32 where
-  toBEncode = toBEncode . (fromIntegral :: Word32 -> Word64)
+  toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
-  fromBEncode b = (fromIntegral :: Word64 -> Word32) <$> fromBEncode b
+  fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Word64 where
-  toBEncode = toBEncode . (fromIntegral :: Word64 -> Int)
+  toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
-  fromBEncode b = (fromIntegral :: Int -> Word64) <$> fromBEncode b
+  fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Word where
-  toBEncode = toBEncode . (fromIntegral :: Word -> Int)
+  toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
-  fromBEncode b = (fromIntegral :: Int -> Word) <$> fromBEncode b
+  fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
 {--------------------------------------------------------------------
