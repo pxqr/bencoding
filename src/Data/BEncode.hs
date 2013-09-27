@@ -339,16 +339,51 @@ instance GBEncodable f e
 #endif
 
 {--------------------------------------------------------------------
-  Basic instances
+--  Native instances
 --------------------------------------------------------------------}
 
 instance BEncodable BEncode where
-  {-# SPECIALIZE instance BEncodable BEncode #-}
   toBEncode = id
   {-# INLINE toBEncode #-}
 
-  fromBEncode = Right
+  fromBEncode = pure
   {-# INLINE fromBEncode #-}
+
+instance BEncodable BInteger where
+  toBEncode = BInteger
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BInteger i) = pure i
+  fromBEncode _            = decodingError "BInteger"
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable BString where
+  toBEncode = BString
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BString s) = pure s
+  fromBEncode _           = decodingError "BString"
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable BList where
+  toBEncode = BList
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BList xs) = pure xs
+  fromBEncode _          = decodingError "BList"
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable BDict where
+  toBEncode = BDict
+  {-# INLINE toBEncode #-}
+
+  fromBEncode (BDict d) = pure d
+  fromBEncode _         = decodingError "BDict"
+  {-# INLINE fromBEncode #-}
+
+{--------------------------------------------------------------------
+--  Derived instances
+--------------------------------------------------------------------}
 
 instance BEncodable Int where
   {-# SPECIALIZE instance BEncodable Int #-}
@@ -356,7 +391,7 @@ instance BEncodable Int where
   {-# INLINE toBEncode #-}
 
   fromBEncode (BInteger i) = Right (fromIntegral i)
-  fromBEncode _            = decodingError "integer"
+  fromBEncode _            = decodingError "Int"
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Bool where
@@ -368,26 +403,8 @@ instance BEncodable Bool where
     case i :: Int of
       0 -> return False
       1 -> return True
-      _ -> decodingError "bool"
+      _ -> decodingError "Bool"
   {-# INLINE fromBEncode #-}
-
-
-instance BEncodable Integer where
-  toBEncode = BInteger . fromIntegral
-  {-# INLINE toBEncode #-}
-
-  fromBEncode b = fromIntegral <$> (fromBEncode b :: Result Int)
-  {-# INLINE fromBEncode #-}
-
-
-instance BEncodable ByteString where
-  toBEncode = BString
-  {-# INLINE toBEncode #-}
-
-  fromBEncode (BString s) = Right s
-  fromBEncode _           = decodingError "string"
-  {-# INLINE fromBEncode #-}
-
 
 instance BEncodable Text where
   toBEncode = toBEncode . T.encodeUtf8
@@ -398,7 +415,6 @@ instance BEncodable Text where
 
 instance BEncodable a => BEncodable [a] where
   {-# SPECIALIZE instance BEncodable [BEncode] #-}
-
   toBEncode = BList . map toBEncode
   {-# INLINE toBEncode #-}
 
@@ -406,10 +422,8 @@ instance BEncodable a => BEncodable [a] where
   fromBEncode _          = decodingError "list"
   {-# INLINE fromBEncode #-}
 
-
 instance BEncodable a => BEncodable (Map ByteString a) where
   {-# SPECIALIZE instance BEncodable (Map ByteString BEncode) #-}
-
   toBEncode = BDict . M.map toBEncode
   {-# INLINE toBEncode #-}
 
@@ -425,6 +439,21 @@ instance (Eq a, BEncodable a) => BEncodable (Set a) where
   fromBEncode (BList xs) = S.fromAscList <$> traverse fromBEncode xs
   fromBEncode _          = decodingError "Data.Set"
   {-# INLINE fromBEncode #-}
+
+instance BEncodable Version where
+  {-# SPECIALIZE instance BEncodable Version #-}
+  {-# INLINE toBEncode #-}
+  toBEncode = toBEncode . BC.pack . showVersion
+
+  fromBEncode (BString bs)
+    | [(v, _)] <- ReadP.readP_to_S parseVersion (BC.unpack bs)
+    = return v
+  fromBEncode _ = decodingError "Data.Version"
+  {-# INLINE fromBEncode #-}
+
+{--------------------------------------------------------------------
+--  Tuple instances
+--------------------------------------------------------------------}
 
 instance BEncodable () where
   {-# SPECIALIZE instance BEncodable () #-}
@@ -486,17 +515,6 @@ instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d, BEncodable e)
     (,,,,) <$> fromBEncode a <*> fromBEncode b
            <*> fromBEncode c <*> fromBEncode d <*> fromBEncode e
   fromBEncode _ = decodingError "Unable to decode a tuple5"
-  {-# INLINE fromBEncode #-}
-
-instance BEncodable Version where
-  {-# SPECIALIZE instance BEncodable Version #-}
-  {-# INLINE toBEncode #-}
-  toBEncode = toBEncode . BC.pack . showVersion
-
-  fromBEncode (BString bs)
-    | [(v, _)] <- ReadP.readP_to_S parseVersion (BC.unpack bs)
-    = return v
-  fromBEncode _ = decodingError "Data.Version"
   {-# INLINE fromBEncode #-}
 
 {--------------------------------------------------------------------
