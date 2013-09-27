@@ -5,7 +5,7 @@
 * DONE documentation
 * DONE document generics
 * DONE v0.2.0.0 (reason: dictAssoc is hidded now)
-* TODO fix portability issues
+* DONE fix portability issues
 make int's instances platform independent so we can make  library
 portable.
 BInteger = Integer
