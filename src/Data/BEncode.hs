@@ -147,9 +147,9 @@ type BKey     = ByteString
 -- Lists is not required to be sorted through.
 --
 data BEncode = BInteger !BInteger -- ^ bencode integers;
-             | BString  {-# UNPACK #-} !BString  -- ^ bencode strings;
-             | BList    BList -- ^ list of bencode values;
-             | BDict    BDict -- ^ bencode key-value dictionary.
+             | BString  !BString  -- ^ bencode strings;
+             | BList     BList    -- ^ list of bencode values;
+             | BDict     BDict    -- ^ bencode key-value dictionary.
                deriving (Show, Read, Eq, Ord)
 
 instance NFData BEncode where
