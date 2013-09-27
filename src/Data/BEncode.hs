@@ -105,8 +105,9 @@ module Data.BEncode
 import Control.Applicative
 import Control.DeepSeq
 import Control.Monad
+import Data.Int
 import Data.Maybe         (mapMaybe)
-import Data.Monoid        -- (mempty, (<>))
+import Data.Monoid
 import Data.Foldable      (foldMap)
 import Data.Traversable   (traverse)
 import Data.Word          (Word8, Word16, Word32, Word64, Word)
@@ -125,6 +126,7 @@ import qualified Data.ByteString.Lazy.Builder.ASCII as B
 import           Data.ByteString.Internal as B (c2w, w2c)
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as T
+import           Data.Typeable
 import           Data.Version
 import           Text.PrettyPrint hiding ((<>))
 import qualified Text.ParserCombinators.ReadP as ReadP
@@ -383,6 +385,21 @@ instance BEncodable BDict where
 {--------------------------------------------------------------------
 --  Integral instances
 --------------------------------------------------------------------}
+
+{- NOTE: instance Integral a => BEncodable a
+   requires -XUndecidableInstances, so we avoid it
+-}
+
+toBEncodeIntegral :: Integral a => a -> BEncode
+toBEncodeIntegral = BInteger . fromIntegral
+{-# INLINE toBEncodeIntegral #-}
+
+fromBEncodeIntegral :: forall a. Typeable a => Integral a => BEncode -> Result a
+fromBEncodeIntegral (BInteger i) = pure (fromIntegral i)
+fromBEncodeIntegral _
+  = decodingError $ show $ typeOf (undefined :: a)
+{-# INLINE fromBEncodeIntegral #-}
+
 
 instance BEncodable Word8 where
   toBEncode = toBEncode . (fromIntegral :: Word8 -> Word64)
