@@ -1,8 +1,5 @@
 name:                  bencoding
 version:               0.2.0.0
-synopsis:              A library for encoding and decoding of BEncode data.
-homepage:              https://github.com/cobit/bencoding
-bug-reports:           https://github.com/cobit/bencoding/issues
 license:               BSD3
 license-file:          LICENSE
 author:                Sam Truzjan
@@ -13,6 +10,9 @@ build-type:            Simple
 cabal-version:         >= 1.10
 tested-with:           GHC==7.4.1
                      , GHC==7.6.3
+homepage:              https://github.com/cobit/bencoding
+bug-reports:           https://github.com/cobit/bencoding/issues
+synopsis:              A library for encoding and decoding of BEncode data.
 description:
 
   A library for encoding and decoding of BEncode data.
@@ -25,7 +25,6 @@ description:
 
 
 extra-source-files:    README.md
-                       .travis.yml
 
 source-repository head
   type:                git
