@@ -1,5 +1,5 @@
 name:                  bencoding
-version:               0.2.0.0
+version:               0.2.1.0
 license:               BSD3
 license-file:          LICENSE
 author:                Sam Truzjan
@@ -23,13 +23,21 @@ description:
     * /0.1.0.0:/ Initial version.
   .
     * /0.2.0.0:/ Added default decoders/encoders using GHC Generics.
-
+  .
+    * /0.2.1.0:/ Arbitrary length integers. (by specification)
 
 extra-source-files:    README.md
 
 source-repository head
   type:                git
   location:            git://github.com/cobit/bencoding.git
+  branch:              master
+
+source-repository this
+  type:                git
+  location:            git://github.com/cobit/bencoding.git
+  branch:              master
+  tag:                 v0.2.1.0
 
 library
   default-language:    Haskell2010
