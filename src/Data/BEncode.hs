@@ -385,7 +385,6 @@ instance BEncodable BDict where
 --------------------------------------------------------------------}
 
 instance BEncodable Int where
-  {-# SPECIALIZE instance BEncodable Int #-}
   toBEncode = BInteger . fromIntegral
   {-# INLINE toBEncode #-}
 
@@ -431,7 +430,7 @@ instance BEncodable a => BEncodable (Map ByteString a) where
   {-# INLINE fromBEncode #-}
 
 instance (Eq a, BEncodable a) => BEncodable (Set a) where
-  {-# SPECIALIZE instance (Eq a, BEncodable a) => BEncodable (Set a)  #-}
+  {-# SPECIALIZE instance BEncodable (Set BEncode)  #-}
   toBEncode = BList . map toBEncode . S.toAscList
   {-# INLINE toBEncode #-}
 
@@ -440,9 +439,8 @@ instance (Eq a, BEncodable a) => BEncodable (Set a) where
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Version where
-  {-# SPECIALIZE instance BEncodable Version #-}
-  {-# INLINE toBEncode #-}
   toBEncode = toBEncode . BC.pack . showVersion
+  {-# INLINE toBEncode #-}
 
   fromBEncode (BString bs)
     | [(v, _)] <- ReadP.readP_to_S parseVersion (BC.unpack bs)
@@ -455,7 +453,6 @@ instance BEncodable Version where
 --------------------------------------------------------------------}
 
 instance BEncodable () where
-  {-# SPECIALIZE instance BEncodable () #-}
   toBEncode () = BList []
   {-# INLINE toBEncode #-}
 
@@ -464,7 +461,9 @@ instance BEncodable () where
   {-# INLINE fromBEncode #-}
 
 instance (BEncodable a, BEncodable b) => BEncodable (a, b) where
-  {-# SPECIALIZE instance (BEncodable a, BEncodable b) => BEncodable (a, b) #-}
+  {-# SPECIALIZE instance (BEncodable b) => BEncodable (BEncode, b) #-}
+  {-# SPECIALIZE instance (BEncodable a) => BEncodable (a, BEncode) #-}
+  {-# SPECIALIZE instance BEncodable (BEncode, BEncode) #-}
   toBEncode (a, b) = BList [toBEncode a, toBEncode b]
   {-# INLINE toBEncode #-}
 
@@ -473,10 +472,8 @@ instance (BEncodable a, BEncodable b) => BEncodable (a, b) where
   {-# INLINE fromBEncode #-}
 
 instance (BEncodable a, BEncodable b, BEncodable c) => BEncodable (a, b, c) where
-  {-# SPECIALIZE instance (BEncodable a, BEncodable b, BEncodable c)
-                  => BEncodable (a, b, c) #-}
-  {-# INLINE toBEncode #-}
   toBEncode (a, b, c) = BList [toBEncode a, toBEncode b, toBEncode c]
+  {-# INLINE toBEncode #-}
 
   fromBEncode (BList [a, b, c]) =
     (,,) <$> fromBEncode a <*> fromBEncode b <*> fromBEncode c
@@ -485,12 +482,10 @@ instance (BEncodable a, BEncodable b, BEncodable c) => BEncodable (a, b, c) wher
 
 instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d)
          => BEncodable (a, b, c, d) where
-  {-# SPECIALIZE instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d)
-                  => BEncodable (a, b, c, d) #-}
-  {-# INLINE toBEncode #-}
   toBEncode (a, b, c, d) = BList [ toBEncode a, toBEncode b
                                  , toBEncode c, toBEncode d
                                  ]
+  {-# INLINE toBEncode #-}
 
   fromBEncode (BList [a, b, c, d]) =
     (,,,) <$> fromBEncode a <*> fromBEncode b
@@ -499,16 +494,12 @@ instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d)
   {-# INLINE fromBEncode #-}
 
 instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d, BEncodable e)
-         => BEncodable (a, b, c, d, e) where
-  {-# SPECIALIZE instance ( BEncodable a, BEncodable b
-                          , BEncodable c, BEncodable d
-                          , BEncodable e)
-                  => BEncodable (a, b, c, d, e) #-}
-  {-# INLINE toBEncode #-}
+      =>  BEncodable (a, b, c, d, e) where
   toBEncode (a, b, c, d, e) = BList [ toBEncode a, toBEncode b
                                  , toBEncode c, toBEncode d
                                  , toBEncode e
                                  ]
+  {-# INLINE toBEncode #-}
 
   fromBEncode (BList [a, b, c, d, e]) =
     (,,,,) <$> fromBEncode a <*> fromBEncode b
@@ -759,35 +750,30 @@ ppBEncode (BDict    d)
 --------------------------------------------------------------------}
 
 instance BEncodable Word8 where
-  {-# SPECIALIZE instance BEncodable Word8 #-}
   toBEncode = toBEncode . (fromIntegral :: Word8 -> Word64)
   {-# INLINE toBEncode #-}
   fromBEncode b = (fromIntegral :: Word64 -> Word8) <$> fromBEncode b
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Word16 where
-  {-# SPECIALIZE instance BEncodable Word16 #-}
   toBEncode = toBEncode . (fromIntegral :: Word16 -> Word64)
   {-# INLINE toBEncode #-}
   fromBEncode b = (fromIntegral :: Word64 -> Word16) <$> fromBEncode b
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Word32 where
-  {-# SPECIALIZE instance BEncodable Word32 #-}
   toBEncode = toBEncode . (fromIntegral :: Word32 -> Word64)
   {-# INLINE toBEncode #-}
   fromBEncode b = (fromIntegral :: Word64 -> Word32) <$> fromBEncode b
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Word64 where
-  {-# SPECIALIZE instance BEncodable Word64 #-}
   toBEncode = toBEncode . (fromIntegral :: Word64 -> Int)
   {-# INLINE toBEncode #-}
   fromBEncode b = (fromIntegral :: Int -> Word64) <$> fromBEncode b
   {-# INLINE fromBEncode #-}
 
 instance BEncodable Word where
-  {-# SPECIALIZE instance BEncodable Word #-}
   toBEncode = toBEncode . (fromIntegral :: Word -> Int)
   {-# INLINE toBEncode #-}
   fromBEncode b = (fromIntegral :: Int -> Word) <$> fromBEncode b
