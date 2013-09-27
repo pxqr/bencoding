@@ -381,7 +381,7 @@ instance BEncodable BDict where
   {-# INLINE fromBEncode #-}
 
 {--------------------------------------------------------------------
---  Integeral instances
+--  Integral instances
 --------------------------------------------------------------------}
 
 instance BEncodable Word8 where
