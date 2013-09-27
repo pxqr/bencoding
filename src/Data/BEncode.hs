@@ -3,7 +3,7 @@
 --   License     :  BSD3
 --   Maintainer  :  pxqr.sta@gmail.com
 --   Stability   :  stable
---   Portability :  non-portable
+--   Portability :  portable
 --
 --   This module provides convinient and fast way to serialize,
 --   deserealize and construct/destructure Bencoded values with

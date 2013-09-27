@@ -7,6 +7,7 @@ maintainer:            Sam Truzjan <pxqr.sta@gmail.com>
 copyright:             (c) 2013, Sam Truzjan
 category:              Data
 build-type:            Simple
+stability:             Experimental
 cabal-version:         >= 1.10
 tested-with:           GHC==7.4.1
                      , GHC==7.6.3
