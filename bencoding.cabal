@@ -9,8 +9,8 @@ category:              Data
 build-type:            Simple
 stability:             Experimental
 cabal-version:         >= 1.10
-tested-with:           GHC==7.4.1
-                     , GHC==7.6.3
+tested-with:           GHC == 7.4.1
+                     , GHC == 7.6.3
 homepage:              https://github.com/cobit/bencoding
 bug-reports:           https://github.com/cobit/bencoding/issues
 synopsis:              A library for encoding and decoding of BEncode data.
