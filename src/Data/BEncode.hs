@@ -381,6 +381,40 @@ instance BEncodable BDict where
   {-# INLINE fromBEncode #-}
 
 {--------------------------------------------------------------------
+--  Integeral instances
+--------------------------------------------------------------------}
+
+instance BEncodable Word8 where
+  toBEncode = toBEncode . (fromIntegral :: Word8 -> Word64)
+  {-# INLINE toBEncode #-}
+  fromBEncode b = (fromIntegral :: Word64 -> Word8) <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Word16 where
+  toBEncode = toBEncode . (fromIntegral :: Word16 -> Word64)
+  {-# INLINE toBEncode #-}
+  fromBEncode b = (fromIntegral :: Word64 -> Word16) <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Word32 where
+  toBEncode = toBEncode . (fromIntegral :: Word32 -> Word64)
+  {-# INLINE toBEncode #-}
+  fromBEncode b = (fromIntegral :: Word64 -> Word32) <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Word64 where
+  toBEncode = toBEncode . (fromIntegral :: Word64 -> Int)
+  {-# INLINE toBEncode #-}
+  fromBEncode b = (fromIntegral :: Int -> Word64) <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
+instance BEncodable Word where
+  toBEncode = toBEncode . (fromIntegral :: Word -> Int)
+  {-# INLINE toBEncode #-}
+  fromBEncode b = (fromIntegral :: Int -> Word) <$> fromBEncode b
+  {-# INLINE fromBEncode #-}
+
+{--------------------------------------------------------------------
 --  Derived instances
 --------------------------------------------------------------------}
 
@@ -744,37 +778,3 @@ ppBEncode (BDict    d)
     = braces $ vcat $ punctuate comma $ map ppKV $ M.toAscList d
   where
     ppKV (k, v) = ppBS k <+> colon <+> ppBEncode v
-
-{--------------------------------------------------------------------
-  Other instances
---------------------------------------------------------------------}
-
-instance BEncodable Word8 where
-  toBEncode = toBEncode . (fromIntegral :: Word8 -> Word64)
-  {-# INLINE toBEncode #-}
-  fromBEncode b = (fromIntegral :: Word64 -> Word8) <$> fromBEncode b
-  {-# INLINE fromBEncode #-}
-
-instance BEncodable Word16 where
-  toBEncode = toBEncode . (fromIntegral :: Word16 -> Word64)
-  {-# INLINE toBEncode #-}
-  fromBEncode b = (fromIntegral :: Word64 -> Word16) <$> fromBEncode b
-  {-# INLINE fromBEncode #-}
-
-instance BEncodable Word32 where
-  toBEncode = toBEncode . (fromIntegral :: Word32 -> Word64)
-  {-# INLINE toBEncode #-}
-  fromBEncode b = (fromIntegral :: Word64 -> Word32) <$> fromBEncode b
-  {-# INLINE fromBEncode #-}
-
-instance BEncodable Word64 where
-  toBEncode = toBEncode . (fromIntegral :: Word64 -> Int)
-  {-# INLINE toBEncode #-}
-  fromBEncode b = (fromIntegral :: Int -> Word64) <$> fromBEncode b
-  {-# INLINE fromBEncode #-}
-
-instance BEncodable Word where
-  toBEncode = toBEncode . (fromIntegral :: Word -> Int)
-  {-# INLINE toBEncode #-}
-  fromBEncode b = (fromIntegral :: Int -> Word) <$> fromBEncode b
-  {-# INLINE fromBEncode #-}
