@@ -18,15 +18,10 @@ description:
 
   A library for encoding and decoding of BEncode data.
   .
-  [/Release notes/]
-  .
-    * /0.1.0.0:/ Initial version.
-  .
-    * /0.2.0.0:/ Added default decoders/encoders using GHC Generics.
-  .
-    * /0.2.2.0:/ Arbitrary length integers. (by specification)
+  See NEWS.md for release notes.
 
 extra-source-files:    README.md
+                     , NEWS.md
 
 source-repository head
   type:                git
