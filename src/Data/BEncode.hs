@@ -366,6 +366,8 @@ instance BEncodable BString where
   fromBEncode _           = decodingError "BString"
   {-# INLINE fromBEncode #-}
 
+{- NOTE: those overlap with instance BEncodable a => BEncodable [a]
+
 instance BEncodable BList where
   toBEncode = BList
   {-# INLINE toBEncode #-}
@@ -381,6 +383,7 @@ instance BEncodable BDict where
   fromBEncode (BDict d) = pure d
   fromBEncode _         = decodingError "BDict"
   {-# INLINE fromBEncode #-}
+-}
 
 {--------------------------------------------------------------------
 --  Integral instances
@@ -495,7 +498,7 @@ instance BEncodable Text where
   {-# INLINE fromBEncode #-}
 
 instance BEncodable a => BEncodable [a] where
-  {-# SPECIALIZE instance BEncodable [BEncode] #-}
+  {-# SPECIALIZE instance BEncodable BList #-}
   toBEncode = BList . map toBEncode
   {-# INLINE toBEncode #-}
 
@@ -504,7 +507,7 @@ instance BEncodable a => BEncodable [a] where
   {-# INLINE fromBEncode #-}
 
 instance BEncodable a => BEncodable (Map ByteString a) where
-  {-# SPECIALIZE instance BEncodable (Map ByteString BEncode) #-}
+  {-# SPECIALIZE instance BEncodable BDict #-}
   toBEncode = BDict . M.map toBEncode
   {-# INLINE toBEncode #-}
 
