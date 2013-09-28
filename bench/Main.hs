@@ -37,7 +37,7 @@ getRight = either error id
 data List a = Cons a (List a) | Nil
               deriving Generic
 
-instance BEncodable a => BEncodable (List a)
+instance C.BEncode a => C.BEncode (List a)
 
 instance NFData a => NFData (List a) where
   rnf  Nil        = ()

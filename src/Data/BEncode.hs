@@ -66,7 +66,7 @@ module Data.BEncode
        , ppBEncode
 
          -- * Conversion
-       , BEncodable (..)
+       , BEncode (..)
        , Result
 
          -- * Serialization
@@ -187,7 +187,7 @@ type Result = Either String
 --
 --  Note that '_' prefixes are omitted.
 --
-class BEncodable a where
+class BEncode a where
   -- | See an example of implementation here 'Assoc'
   toBEncode   :: a -> BValue
 
@@ -237,7 +237,7 @@ class GBEncodable f e where
   gto   :: f a -> e
   gfrom :: e -> Result (f a)
 
-instance BEncodable f
+instance BEncode f
       => GBEncodable (K1 R f) BValue where
   {-# INLINE gto #-}
   gto = toBEncode . unK1
@@ -344,14 +344,14 @@ instance GBEncodable f e
 --  Native instances
 --------------------------------------------------------------------}
 
-instance BEncodable BValue where
+instance BEncode BValue where
   toBEncode = id
   {-# INLINE toBEncode #-}
 
   fromBEncode = pure
   {-# INLINE fromBEncode #-}
 
-instance BEncodable BInteger where
+instance BEncode BInteger where
   toBEncode = BInteger
   {-# INLINE toBEncode #-}
 
@@ -359,7 +359,7 @@ instance BEncodable BInteger where
   fromBEncode _            = decodingError "BInteger"
   {-# INLINE fromBEncode #-}
 
-instance BEncodable BString where
+instance BEncode BString where
   toBEncode = BString
   {-# INLINE toBEncode #-}
 
@@ -405,70 +405,70 @@ fromBEncodeIntegral _
 {-# INLINE fromBEncodeIntegral #-}
 
 
-instance BEncodable Word8 where
+instance BEncode Word8 where
   toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
   fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Word16 where
+instance BEncode Word16 where
   toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
   fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Word32 where
+instance BEncode Word32 where
   toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
   fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Word64 where
+instance BEncode Word64 where
   toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
   fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Word where
+instance BEncode Word where
   toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
   fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Int8 where
+instance BEncode Int8 where
   toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
   fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Int16 where
+instance BEncode Int16 where
   toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
   fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Int32 where
+instance BEncode Int32 where
   toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
   fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Int64 where
+instance BEncode Int64 where
   toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
   fromBEncode = fromBEncodeIntegral
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Int where
+instance BEncode Int where
   toBEncode = toBEncodeIntegral
   {-# INLINE toBEncode #-}
 
@@ -479,7 +479,7 @@ instance BEncodable Int where
 --  Derived instances
 --------------------------------------------------------------------}
 
-instance BEncodable Bool where
+instance BEncode Bool where
   toBEncode = toBEncode . fromEnum
   {-# INLINE toBEncode #-}
 
@@ -491,15 +491,15 @@ instance BEncodable Bool where
       _ -> decodingError "Bool"
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Text where
+instance BEncode Text where
   toBEncode = toBEncode . T.encodeUtf8
   {-# INLINE toBEncode #-}
 
   fromBEncode b = T.decodeUtf8 <$> fromBEncode b
   {-# INLINE fromBEncode #-}
 
-instance BEncodable a => BEncodable [a] where
-  {-# SPECIALIZE instance BEncodable BList #-}
+instance BEncode a => BEncode [a] where
+  {-# SPECIALIZE instance BEncode BList #-}
   toBEncode = BList . map toBEncode
   {-# INLINE toBEncode #-}
 
@@ -507,8 +507,8 @@ instance BEncodable a => BEncodable [a] where
   fromBEncode _          = decodingError "list"
   {-# INLINE fromBEncode #-}
 
-instance BEncodable a => BEncodable (Map ByteString a) where
-  {-# SPECIALIZE instance BEncodable BDict #-}
+instance BEncode a => BEncode (Map BKey a) where
+  {-# SPECIALIZE instance BEncode BDict #-}
   toBEncode = BDict . M.map toBEncode
   {-# INLINE toBEncode #-}
 
@@ -516,8 +516,8 @@ instance BEncodable a => BEncodable (Map ByteString a) where
   fromBEncode _         = decodingError "dictionary"
   {-# INLINE fromBEncode #-}
 
-instance (Eq a, BEncodable a) => BEncodable (Set a) where
-  {-# SPECIALIZE instance BEncodable (Set BValue)  #-}
+instance (Eq a, BEncode a) => BEncode (Set a) where
+  {-# SPECIALIZE instance BEncode (Set BValue)  #-}
   toBEncode = BList . map toBEncode . S.toAscList
   {-# INLINE toBEncode #-}
 
@@ -525,7 +525,7 @@ instance (Eq a, BEncodable a) => BEncodable (Set a) where
   fromBEncode _          = decodingError "Data.Set"
   {-# INLINE fromBEncode #-}
 
-instance BEncodable Version where
+instance BEncode Version where
   toBEncode = toBEncode . BC.pack . showVersion
   {-# INLINE toBEncode #-}
 
@@ -539,7 +539,7 @@ instance BEncodable Version where
 --  Tuple instances
 --------------------------------------------------------------------}
 
-instance BEncodable () where
+instance BEncode () where
   toBEncode () = BList []
   {-# INLINE toBEncode #-}
 
@@ -547,10 +547,10 @@ instance BEncodable () where
   fromBEncode _          = decodingError "Unable to decode unit value"
   {-# INLINE fromBEncode #-}
 
-instance (BEncodable a, BEncodable b) => BEncodable (a, b) where
-  {-# SPECIALIZE instance (BEncodable b) => BEncodable (BValue, b) #-}
-  {-# SPECIALIZE instance (BEncodable a) => BEncodable (a, BValue) #-}
-  {-# SPECIALIZE instance BEncodable (BValue, BValue) #-}
+instance (BEncode a, BEncode b) => BEncode (a, b) where
+  {-# SPECIALIZE instance (BEncode b) => BEncode (BValue, b) #-}
+  {-# SPECIALIZE instance (BEncode a) => BEncode (a, BValue) #-}
+  {-# SPECIALIZE instance BEncode (BValue, BValue) #-}
   toBEncode (a, b) = BList [toBEncode a, toBEncode b]
   {-# INLINE toBEncode #-}
 
@@ -558,7 +558,7 @@ instance (BEncodable a, BEncodable b) => BEncodable (a, b) where
   fromBEncode _              = decodingError "Unable to decode a pair."
   {-# INLINE fromBEncode #-}
 
-instance (BEncodable a, BEncodable b, BEncodable c) => BEncodable (a, b, c) where
+instance (BEncode a, BEncode b, BEncode c) => BEncode (a, b, c) where
   toBEncode (a, b, c) = BList [toBEncode a, toBEncode b, toBEncode c]
   {-# INLINE toBEncode #-}
 
@@ -567,8 +567,8 @@ instance (BEncodable a, BEncodable b, BEncodable c) => BEncodable (a, b, c) wher
   fromBEncode _ = decodingError "Unable to decode a triple"
   {-# INLINE fromBEncode #-}
 
-instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d)
-         => BEncodable (a, b, c, d) where
+instance (BEncode a, BEncode b, BEncode c, BEncode d)
+         => BEncode (a, b, c, d) where
   toBEncode (a, b, c, d) = BList [ toBEncode a, toBEncode b
                                  , toBEncode c, toBEncode d
                                  ]
@@ -580,8 +580,8 @@ instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d)
   fromBEncode _ = decodingError "Unable to decode a tuple4"
   {-# INLINE fromBEncode #-}
 
-instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d, BEncodable e)
-      =>  BEncodable (a, b, c, d, e) where
+instance (BEncode a, BEncode b, BEncode c, BEncode d, BEncode e)
+      =>  BEncode (a, b, c, d, e) where
   toBEncode (a, b, c, d, e) = BList [ toBEncode a, toBEncode b
                                  , toBEncode c, toBEncode d
                                  , toBEncode e
@@ -626,14 +626,14 @@ instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d, BEncodable e)
 newtype Assoc = Assoc { unAssoc :: Maybe (ByteString, BValue) }
 
 -- | Make required key value pair.
-(-->) :: BEncodable a => ByteString -> a -> Assoc
+(-->) :: BEncode a => BKey -> a -> Assoc
 key --> val = Assoc $ Just $ (key, toBEncode val)
 {-# INLINE (-->) #-}
 
 -- | Like (-->) but if the value is not present then the key do not
 -- appear in resulting bencoded dictionary.
 --
-(-->?) :: BEncodable a => ByteString -> Maybe a -> Assoc
+(-->?) :: BEncode a => BKey -> Maybe a -> Assoc
 key -->? mval = Assoc $ ((,) key . toBEncode) <$> mval
 {-# INLINE (-->?) #-}
 
@@ -668,7 +668,7 @@ fromAscAssocs = BDict . M.fromAscList . mapMaybe unAssoc
 --
 --  The /reqKey/ is used to extract required key — if lookup is failed
 --  then whole destructuring fail.
-reqKey :: BEncodable a => BDict -> BKey -> Result a
+reqKey :: BEncode a => BDict -> BKey -> Result a
 reqKey d key
   | Just b <- M.lookup key d = fromBEncode b
   |        otherwise         = Left msg
@@ -677,19 +677,19 @@ reqKey d key
 
 -- | Used to extract optional key — if lookup is failed returns
 -- 'Nothing'.
-optKey :: BEncodable a => BDict -> BKey -> Result (Maybe a)
+optKey :: BEncode a => BDict -> BKey -> Result (Maybe a)
 optKey d key
   | Just b <- M.lookup key d
   , Right r <- fromBEncode b = return (Just r)
   | otherwise                = return Nothing
 
 -- | Infix version of the 'reqKey'.
-(>--) :: BEncodable a => BDict -> BKey -> Result a
+(>--) :: BEncode a => BDict -> BKey -> Result a
 (>--) = reqKey
 {-# INLINE (>--) #-}
 
 -- | Infix version of the 'optKey'.
-(>--?) :: BEncodable a => BDict -> BKey -> Result (Maybe a)
+(>--?) :: BEncode a => BDict -> BKey -> Result (Maybe a)
 (>--?) = optKey
 {-# INLINE (>--?) #-}
 
@@ -736,11 +736,11 @@ decode :: ByteString -> Result BValue
 decode = P.parseOnly parser
 
 -- | The same as 'decode' but returns any bencodable value.
-decoded :: BEncodable a => ByteString -> Result a
+decoded :: BEncode a => ByteString -> Result a
 decoded = decode >=> fromBEncode
 
 -- | The same as 'encode' but takes any bencodable value.
-encoded :: BEncodable a => a -> Lazy.ByteString
+encoded :: BEncode a => a -> Lazy.ByteString
 encoded = encode . toBEncode
 
 {--------------------------------------------------------------------

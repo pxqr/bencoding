@@ -32,7 +32,7 @@ prop_EncDec x = case decode (L.toStrict (encode x)) of
 data List a = Cons a (List a) | Nil
               deriving (Show, Eq, Generic)
 
-instance BEncodable a => BEncodable (List a)
+instance BEncode a => BEncode (List a)
 
 instance Arbitrary a => Arbitrary (List a) where
   arbitrary = frequency
@@ -46,14 +46,14 @@ data FileInfo = FileInfo
   , fiMD5Sum :: B.ByteString
   } deriving (Show, Eq, Generic)
 
-instance BEncodable FileInfo
+instance BEncode FileInfo
 
 instance Arbitrary FileInfo where
   arbitrary = FileInfo <$> arbitrary <*> arbitrary <*> arbitrary
 
 data T a = T
 
-prop_bencodable :: Eq a => BEncodable a => T a -> a -> Bool
+prop_bencodable :: Eq a => BEncode a => T a -> a -> Bool
 prop_bencodable _ x = decoded (L.toStrict (encoded x)) == Right x
 
 -- All tests are (encode >>> decode = id)
