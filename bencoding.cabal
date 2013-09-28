@@ -76,12 +76,12 @@ benchmark bench-comparison
   main-is:             Main.hs
   build-depends:       base == 4.*
                      , ghc-prim
+                     , deepseq
 
                      , attoparsec >= 0.10
                      , bytestring >= 0.10.0.2
 
                      , criterion
-                     , deepseq
 
                      , bencoding
                      , bencode     >= 0.5

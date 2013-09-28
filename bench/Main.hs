@@ -1,16 +1,20 @@
-{-# LANGUAGE PackageImports #-}
-{-# LANGUAGE DeriveGeneric  #-}
+{-# LANGUAGE PackageImports    #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE RecordWildCards   #-}
+{-# LANGUAGE OverloadedStrings #-}
 module Main (main) where
 
+import Control.Applicative
 import Control.DeepSeq
-import Data.Maybe
 import Data.Attoparsec.ByteString as Atto
-import Data.ByteString as B
-import Data.ByteString.Lazy as BL
+import           Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BL
 import Data.List as L
-import Criterion.Main
+import Data.Maybe
+import Data.Monoid
 import System.Environment
 
+import Criterion.Main
 import GHC.Generics
 
 import "bencode"   Data.BEncode     as A
@@ -51,11 +55,63 @@ replicate' c x
     go 0 = Nil
     go n = Cons x $ go (pred n)
 
+{-----------------------------------------------------------------------
+--  Big dicts
+-----------------------------------------------------------------------}
+
+data Torrent = Torrent {
+    tAnnounce     :: !ByteString
+  , tInfo         :: !BDict
+  , tAnnounceList :: !(Maybe ByteString)
+  , tComment      :: !(Maybe ByteString)
+  , tCreatedBy    :: !(Maybe ByteString)
+  , tCreationDate :: !(Maybe ByteString)
+  , tEncoding     :: !(Maybe ByteString)
+  , tPublisher    :: !(Maybe ByteString)
+  , tPublisherURL :: !(Maybe ByteString)
+  , tSignature    :: !(Maybe ByteString)
+  } deriving (Show, Eq)
+
+instance NFData Torrent where
+  rnf Torrent {..} = ()
+
+instance C.BEncode Torrent where
+  toBEncode Torrent {..} = fromAscAssocs
+    [ "announce"      -->  tAnnounce
+    , "announce-list" -->? tAnnounceList
+    , "comment"       -->? tComment
+    , "created by"    -->? tCreatedBy
+    , "creation date" -->? tCreationDate
+    , "encoding"      -->? tEncoding
+    , "info"          -->  tInfo
+    , "publisher"     -->? tPublisher
+    , "publisher-url" -->? tPublisherURL
+    , "signature"     -->? tSignature
+    ]
+
+  fromBEncode (C.BDict d) =
+    Torrent <$> d >--  "announce"
+            <*> d >--  "info"
+            <*> d >--? "announce-list"
+            <*> d >--? "comment"
+            <*> d >--? "created by"
+            <*> d >--? "creation date"
+            <*> d >--? "encoding"
+            <*> d >--? "publisher"
+            <*> d >--? "publisher-url"
+            <*> d >--? "signature"
+
+  fromBEncode _ = decodingError "Torrent"
+
+{-----------------------------------------------------------------------
+--  Main
+-----------------------------------------------------------------------}
+
 main :: IO ()
 main = do
   (path : args) <- getArgs
-  torrentFile   <- B.readFile path
-  let lazyTorrentFile = fromChunks [torrentFile]
+  torrentFile   <- BS.readFile path
+  let lazyTorrentFile = BL.fromChunks [torrentFile]
 
   case rnf (torrentFile, lazyTorrentFile) of
     () -> return ()
@@ -100,11 +156,11 @@ main = do
 
        , let d = BL.toStrict (C.encoded (L.replicate 10000 ()))
          in d `seq` (bench "list10000unit/bencoding/decode" $ nf
-            (C.decoded :: B.ByteString -> Either String [()]) d)
+            (C.decoded :: BS.ByteString -> Either String [()]) d)
 
        , let d = BL.toStrict $ C.encoded $ L.replicate 10000 (0 :: Int)
          in d `seq` (bench "list10000int/bencoding/decode" $ nf
-            (C.decoded :: B.ByteString -> Either String [Int]) d)
+            (C.decoded :: BS.ByteString -> Either String [Int]) d)
 
        , let d = L.replicate 10000 0
          in bench "list10000int/bencoding/encode>>decode" $
@@ -117,4 +173,12 @@ main = do
             nf (getRight . C.decoded . BL.toStrict . C.encoded
                 :: List Int -> List Int)
                d
+
+       , let Right be = C.decode torrentFile
+             id'   x  = let t = either error id (fromBEncode x)
+                        in toBEncode (t :: Torrent)
+
+         in bench "bigdict" $ nf
+              (appEndo $ mconcat $ L.replicate 1000 (Endo id'))
+              be
        ]
