@@ -16,7 +16,7 @@ import Data.BEncode
 instance Arbitrary B.ByteString where
     arbitrary = fmap B.pack arbitrary
 
-instance Arbitrary BEncode where
+instance Arbitrary BValue where
     arbitrary = frequency
                 [ (50, BInteger <$> arbitrary)
                 , (40, BString  <$> arbitrary)
@@ -24,7 +24,7 @@ instance Arbitrary BEncode where
                 ]
 
 
-prop_EncDec :: BEncode -> Bool
+prop_EncDec :: BValue -> Bool
 prop_EncDec x = case decode (L.toStrict (encode x)) of
                   Left _   -> False
                   Right x' -> x == x'

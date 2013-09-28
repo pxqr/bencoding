@@ -62,7 +62,7 @@ module Data.BEncode
        , BDict
        , BKey
 
-       , BEncode(..)
+       , BValue (..)
        , ppBEncode
 
          -- * Conversion
@@ -138,8 +138,8 @@ import GHC.Generics
 
 type BInteger = Integer
 type BString  = ByteString
-type BList    = [BEncode]
-type BDict    = Map BKey BEncode
+type BList    = [BValue]
+type BDict    = Map BKey BValue
 type BKey     = ByteString
 
 -- | 'BEncode' is straightforward ADT for b-encoded values. Please
@@ -147,13 +147,14 @@ type BKey     = ByteString
 -- compare BEncoded values without serialization and vice versa.
 -- Lists is not required to be sorted through.
 --
-data BEncode = BInteger !BInteger -- ^ bencode integers;
-             | BString  !BString  -- ^ bencode strings;
-             | BList     BList    -- ^ list of bencode values;
-             | BDict     BDict    -- ^ bencode key-value dictionary.
-               deriving (Show, Read, Eq, Ord)
+data BValue
+  = BInteger !BInteger -- ^ bencode integers;
+  | BString  !BString  -- ^ bencode strings;
+  | BList     BList    -- ^ list of bencode values;
+  | BDict     BDict    -- ^ bencode key-value dictionary.
+    deriving (Show, Read, Eq, Ord)
 
-instance NFData BEncode where
+instance NFData BValue where
     rnf (BInteger i) = rnf i
     rnf (BString  s) = rnf s
     rnf (BList    l) = rnf l
@@ -188,25 +189,25 @@ type Result = Either String
 --
 class BEncodable a where
   -- | See an example of implementation here 'Assoc'
-  toBEncode   :: a -> BEncode
+  toBEncode   :: a -> BValue
 
 #if __GLASGOW_HASKELL__ >= 702
   default toBEncode
     :: Generic a
-    => GBEncodable (Rep a) BEncode
-    => a -> BEncode
+    => GBEncodable (Rep a) BValue
+    => a -> BValue
 
   toBEncode = gto . from
 #endif
 
   -- | See an example of implementation here 'reqKey'.
-  fromBEncode :: BEncode -> Result a
+  fromBEncode :: BValue -> Result a
 
 #if __GLASGOW_HASKELL__ >= 702
   default fromBEncode
     :: Generic a
-    => GBEncodable (Rep a) BEncode
-    => BEncode -> Result a
+    => GBEncodable (Rep a) BValue
+    => BValue -> Result a
 
   fromBEncode x = to <$> gfrom x
 #endif
@@ -237,7 +238,7 @@ class GBEncodable f e where
   gfrom :: e -> Result (f a)
 
 instance BEncodable f
-      => GBEncodable (K1 R f) BEncode where
+      => GBEncodable (K1 R f) BValue where
   {-# INLINE gto #-}
   gto = toBEncode . unK1
 
@@ -291,7 +292,7 @@ selRename :: String -> String
 selRename = dropWhile ('_'==)
 
 gfromM1S :: forall c. Selector c
-         => GBEncodable f BEncode
+         => GBEncodable f BValue
          => BDict -> Result (M1 i c f p)
 gfromM1S dict
   | Just va <- M.lookup (BC.pack (selRename name)) dict = M1 <$> gfrom va
@@ -299,7 +300,7 @@ gfromM1S dict
   where
     name = selName (error "gfromM1S: impossible" :: M1 i c f p)
 
-instance (Selector s, GBEncodable f BEncode)
+instance (Selector s, GBEncodable f BValue)
        => GBEncodable (M1 S s f) BDict where
   {-# INLINE gto #-}
   gto s @ (M1 x) = BC.pack (selRename (selName s)) `M.singleton` gto x
@@ -308,7 +309,7 @@ instance (Selector s, GBEncodable f BEncode)
   gfrom = gfromM1S
 
 -- TODO DList
-instance GBEncodable f BEncode
+instance GBEncodable f BValue
       => GBEncodable (M1 S s f) BList where
   {-# INLINE gto #-}
   gto (M1 x) = [gto x]
@@ -318,7 +319,7 @@ instance GBEncodable f BEncode
   {-# INLINE gfrom #-}
 
 instance (Constructor c, GBEncodable f BDict, GBEncodable f BList)
-       => GBEncodable (M1 C c f) BEncode where
+       => GBEncodable (M1 C c f) BValue where
   {-# INLINE gto #-}
   gto con @ (M1 x)
       | conIsRecord con = BDict (gto x)
@@ -343,7 +344,7 @@ instance GBEncodable f e
 --  Native instances
 --------------------------------------------------------------------}
 
-instance BEncodable BEncode where
+instance BEncodable BValue where
   toBEncode = id
   {-# INLINE toBEncode #-}
 
@@ -393,11 +394,11 @@ instance BEncodable BDict where
    requires -XUndecidableInstances, so we avoid it
 -}
 
-toBEncodeIntegral :: Integral a => a -> BEncode
+toBEncodeIntegral :: Integral a => a -> BValue
 toBEncodeIntegral = BInteger . fromIntegral
 {-# INLINE toBEncodeIntegral #-}
 
-fromBEncodeIntegral :: forall a. Typeable a => Integral a => BEncode -> Result a
+fromBEncodeIntegral :: forall a. Typeable a => Integral a => BValue -> Result a
 fromBEncodeIntegral (BInteger i) = pure (fromIntegral i)
 fromBEncodeIntegral _
   = decodingError $ show $ typeOf (undefined :: a)
@@ -516,7 +517,7 @@ instance BEncodable a => BEncodable (Map ByteString a) where
   {-# INLINE fromBEncode #-}
 
 instance (Eq a, BEncodable a) => BEncodable (Set a) where
-  {-# SPECIALIZE instance BEncodable (Set BEncode)  #-}
+  {-# SPECIALIZE instance BEncodable (Set BValue)  #-}
   toBEncode = BList . map toBEncode . S.toAscList
   {-# INLINE toBEncode #-}
 
@@ -547,9 +548,9 @@ instance BEncodable () where
   {-# INLINE fromBEncode #-}
 
 instance (BEncodable a, BEncodable b) => BEncodable (a, b) where
-  {-# SPECIALIZE instance (BEncodable b) => BEncodable (BEncode, b) #-}
-  {-# SPECIALIZE instance (BEncodable a) => BEncodable (a, BEncode) #-}
-  {-# SPECIALIZE instance BEncodable (BEncode, BEncode) #-}
+  {-# SPECIALIZE instance (BEncodable b) => BEncodable (BValue, b) #-}
+  {-# SPECIALIZE instance (BEncodable a) => BEncodable (a, BValue) #-}
+  {-# SPECIALIZE instance BEncodable (BValue, BValue) #-}
   toBEncode (a, b) = BList [toBEncode a, toBEncode b]
   {-# INLINE toBEncode #-}
 
@@ -622,7 +623,7 @@ instance (BEncodable a, BEncodable b, BEncodable c, BEncodable d, BEncodable e)
 --  >     ]
 --  >     ...
 --
-newtype Assoc = Assoc { unAssoc :: Maybe (ByteString, BEncode) }
+newtype Assoc = Assoc { unAssoc :: Maybe (ByteString, BValue) }
 
 -- | Make required key value pair.
 (-->) :: BEncodable a => ByteString -> a -> Assoc
@@ -637,13 +638,13 @@ key -->? mval = Assoc $ ((,) key . toBEncode) <$> mval
 {-# INLINE (-->?) #-}
 
 -- | Build BEncode dictionary using key -> value description.
-fromAssocs :: [Assoc] -> BEncode
+fromAssocs :: [Assoc] -> BValue
 fromAssocs = BDict . M.fromList . mapMaybe unAssoc
 {-# INLINE fromAssocs #-}
 
 -- | A faster version of 'fromAssocs'. Should be used only when keys
 -- in builder list are sorted by ascending.
-fromAscAssocs :: [Assoc] -> BEncode
+fromAscAssocs :: [Assoc] -> BValue
 fromAscAssocs = BDict . M.fromAscList . mapMaybe unAssoc
 {-# INLINE fromAscAssocs #-}
 
@@ -697,25 +698,25 @@ optKey d key
 --------------------------------------------------------------------}
 
 -- | Test if bencoded value is an integer.
-isInteger :: BEncode -> Bool
+isInteger :: BValue -> Bool
 isInteger (BInteger _) = True
 isInteger _            = False
 {-# INLINE isInteger #-}
 
 -- | Test if bencoded value is a string, both raw and utf8 encoded.
-isString :: BEncode -> Bool
+isString :: BValue -> Bool
 isString (BString _) = True
 isString _           = False
 {-# INLINE isString #-}
 
 -- | Test if bencoded value is a list.
-isList :: BEncode -> Bool
+isList :: BValue -> Bool
 isList (BList _) = True
 isList _         = False
 {-# INLINE isList #-}
 
 -- | Test if bencoded value is a dictionary.
-isDict :: BEncode -> Bool
+isDict :: BValue -> Bool
 isDict (BList _) = True
 isDict _         = False
 {-# INLINE isDict #-}
@@ -726,12 +727,12 @@ isDict _         = False
 
 -- | Convert bencoded value to raw bytestring according to the
 -- specification.
-encode :: BEncode -> Lazy.ByteString
+encode :: BValue -> Lazy.ByteString
 encode = B.toLazyByteString . builder
 
 -- | Try to convert raw bytestring to bencoded value according to
 -- specification.
-decode :: ByteString -> Result BEncode
+decode :: ByteString -> Result BValue
 decode = P.parseOnly parser
 
 -- | The same as 'decode' but returns any bencodable value.
@@ -747,7 +748,7 @@ encoded = encode . toBEncode
 --------------------------------------------------------------------}
 
 -- | BEncode format encoder according to specification.
-builder :: BEncode -> B.Builder
+builder :: BValue -> B.Builder
 builder = go
     where
       go (BInteger i) = B.word8 (c2w 'i') <>
@@ -770,7 +771,7 @@ builder = go
 
 -- TODO try to replace peekChar with something else
 -- | BEncode format parser according to specification.
-parser :: Parser BEncode
+parser :: Parser BValue
 parser = valueP
   where
     valueP = do
@@ -822,7 +823,7 @@ ppBS = text . map w2c . B.unpack
 
 -- | Convert to easily readable JSON-like document. Typically used for
 -- debugging purposes.
-ppBEncode :: BEncode -> Doc
+ppBEncode :: BValue -> Doc
 ppBEncode (BInteger i) = int $ fromIntegral i
 ppBEncode (BString  s) = ppBS s
 ppBEncode (BList    l) = brackets $ hsep $ punctuate comma $ map ppBEncode l
