@@ -9,8 +9,8 @@
 --   don't need to import this module.
 --
 module Data.BEncode.Internal
-       ( decode
-       , encode
+       ( parse
+       , build
        , ppBEncode
        ) where
 
@@ -59,8 +59,8 @@ builder = go
 
 -- | Convert bencoded value to raw bytestring according to the
 -- specification.
-encode :: BValue -> Lazy.ByteString
-encode = B.toLazyByteString . builder
+build :: BValue -> Lazy.ByteString
+build = B.toLazyByteString . builder
 
 {--------------------------------------------------------------------
 -- Deserialization
@@ -113,8 +113,8 @@ parser = valueP
 
 -- | Try to convert raw bytestring to bencoded value according to
 -- specification.
-decode :: ByteString -> Either String BValue
-decode = P.parseOnly parser
+parse :: ByteString -> Either String BValue
+parse = P.parseOnly parser
 
 {--------------------------------------------------------------------
   Pretty Printing

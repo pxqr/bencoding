@@ -54,7 +54,7 @@ instance Arbitrary FileInfo where
 data T a = T
 
 prop_bencodable :: Eq a => BEncode a => T a -> a -> Bool
-prop_bencodable _ x = decoded (L.toStrict (encoded x)) == Right x
+prop_bencodable _ x = decode (L.toStrict (encode x)) == Right x
 
 -- All tests are (encode >>> decode = id)
 main :: IO ()

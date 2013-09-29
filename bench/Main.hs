@@ -21,7 +21,7 @@ import "bencode"   Data.BEncode     as A
 import             Data.AttoBencode as B
 import             Data.AttoBencode.Parser as B
 import "bencoding" Data.BEncode     as C
-
+import "bencoding" Data.BEncode.Internal as C
 
 instance NFData A.BEncode where
     rnf (A.BInt    i) = rnf i
@@ -123,21 +123,21 @@ main = do
        , bench "decode/AttoBencode" $
            nf (getRight . Atto.parseOnly bValue) torrentFile
        , bench "decode/bencoding"   $
-           nf (getRight . C.decode)              torrentFile
+           nf (getRight . C.parse)              torrentFile
 
        , let Just v = A.bRead lazyTorrentFile in
          bench "encode/bencode"     $ nf A.bPack v
        , let Right v = Atto.parseOnly bValue torrentFile in
          bench "encode/AttoBencode" $ nf B.encode v
-       , let Right v = C.decode torrentFile in
-         bench "encode/bencoding"   $ nf C.encode v
+       , let Right v = C.parse torrentFile in
+         bench "encode/bencoding"   $ nf C.build v
 
        , bench "decode+encode/bencode"     $
            nf (A.bPack  . fromJust . A.bRead) lazyTorrentFile
        , bench "decode+encode/AttoBencode" $
            nf (B.encode . getRight . Atto.parseOnly bValue) torrentFile
        , bench "decode+encode/bencoding"   $
-           nf (C.encode . getRight . C.decode) torrentFile
+           nf (C.build . getRight . C.parse) torrentFile
 
        , bench "list10000int/bencode/encode" $
            nf (A.bPack . A.BList . L.map (A.BInt . fromIntegral))
@@ -146,7 +146,7 @@ main = do
        , bench "list10000int/attobencode/encode" $
            nf B.encode [1..20000 :: Int]
        , bench "list10000int/bencoding/encode" $
-           nf C.encoded [1..20000 :: Int]
+           nf C.encode [1..20000 :: Int]
 
 
        , let d = A.bPack $ A.BList $
@@ -154,27 +154,27 @@ main = do
          in d `seq` (bench "list1000int/bencode/decode" $ nf
             (fromJust . A.bRead :: BL.ByteString -> A.BEncode) d)
 
-       , let d = BL.toStrict (C.encoded (L.replicate 10000 ()))
+       , let d = BL.toStrict (C.encode (L.replicate 10000 ()))
          in d `seq` (bench "list10000unit/bencoding/decode" $ nf
-            (C.decoded :: BS.ByteString -> Either String [()]) d)
+            (C.decode :: BS.ByteString -> Either String [()]) d)
 
-       , let d = BL.toStrict $ C.encoded $ L.replicate 10000 (0 :: Int)
+       , let d = BL.toStrict $ C.encode $ L.replicate 10000 (0 :: Int)
          in d `seq` (bench "list10000int/bencoding/decode" $ nf
-            (C.decoded :: BS.ByteString -> Either String [Int]) d)
+            (C.decode :: BS.ByteString -> Either String [Int]) d)
 
        , let d = L.replicate 10000 0
          in bench "list10000int/bencoding/encode>>decode" $
-            nf  (getRight . C.decoded . BL.toStrict . C.encoded
+            nf  (getRight . C.decode . BL.toStrict . C.encode
                  :: [Int] ->  [Int] )
                 d
 
        , let d = replicate' 10000 0
          in bench "list10000int/bencoding/encode>>decode/generic" $
-            nf (getRight . C.decoded . BL.toStrict . C.encoded
+            nf (getRight . C.decode . BL.toStrict . C.encode
                 :: List Int -> List Int)
                d
 
-       , let Right be = C.decode torrentFile
+       , let Right be = C.parse torrentFile
              id'   x  = let t = either error id (fromBEncode x)
                         in toBEncode (t :: Torrent)
 

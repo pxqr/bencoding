@@ -73,8 +73,6 @@ module Data.BEncode
          -- * Serialization
        , encode
        , decode
-       , encoded
-       , decoded
 
          -- ** Dictionaries
          -- *** Building
@@ -700,9 +698,9 @@ isDict _         = False
 --------------------------------------------------------------------}
 
 -- | The same as 'decode' but returns any bencodable value.
-decoded :: BEncode a => ByteString -> Result a
-decoded = decode >=> fromBEncode
+decode :: BEncode a => ByteString -> Result a
+decode = parse >=> fromBEncode
 
 -- | The same as 'encode' but takes any bencodable value.
-encoded :: BEncode a => a -> Lazy.ByteString
-encoded = encode . toBEncode
+encode :: BEncode a => a -> Lazy.ByteString
+encode = build . toBEncode
