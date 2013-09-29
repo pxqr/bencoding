@@ -98,21 +98,13 @@ module Data.BEncode
 
 
 import Control.Applicative
-import Control.DeepSeq
 import Control.Monad
 import Data.Int
 import Data.List as L
 import Data.Maybe         (mapMaybe)
 import Data.Monoid
-import Data.Foldable      (foldMap)
-import Data.Traversable   (traverse)
 import Data.Word          (Word8, Word16, Word32, Word64, Word)
-import           Data.Map (Map)
-import qualified Data.Map as M
-import           Data.Set (Set)
-import qualified Data.Set as S
 import           Data.ByteString (ByteString)
-import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as Lazy
 import           Data.Text (Text)
