@@ -45,6 +45,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Trustworthy       #-}
 {-# LANGUAGE CPP               #-}
+{-# LANGUAGE BangPatterns      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE TypeOperators          #-}
@@ -137,30 +139,8 @@ import GHC.Generics
 #endif
 
 import Data.BEncode.BDict as BD
+import Data.BEncode.Types
 
-
-type BInteger = Integer
-type BString  = ByteString
-type BList    = [BValue]
-type BDict    = BDictMap BValue
-
--- | 'BEncode' is straightforward ADT for b-encoded values. Please
--- note that since dictionaries are sorted, in most cases we can
--- compare BEncoded values without serialization and vice versa.
--- Lists is not required to be sorted through.
---
-data BValue
-  = BInteger !BInteger -- ^ bencode integers;
-  | BString  !BString  -- ^ bencode strings;
-  | BList     BList    -- ^ list of bencode values;
-  | BDict     BDict    -- ^ bencode key-value dictionary.
-    deriving (Show, Read, Eq, Ord)
-
-instance NFData BValue where
-    rnf (BInteger i) = rnf i
-    rnf (BString  s) = rnf s
-    rnf (BList    l) = rnf l
-    rnf (BDict    d) = rnf d
 
 -- | Result used in decoding operations.
 type Result = Either String
