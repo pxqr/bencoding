@@ -1,3 +1,13 @@
+-- |
+--   Copyright   :  (c) Sam Truzjan 2013
+--   License     :  BSD3
+--   Maintainer  :  pxqr.sta@gmail.com
+--   Stability   :  stable
+--   Portability :  portable
+--
+--   This module defines a simple key value list which both faster and
+--   more suitable for bencode dictionaries.
+--
 module Data.BEncode.BDict
        ( BKey
        , BDictMap (..)
