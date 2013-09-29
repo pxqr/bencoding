@@ -1,3 +1,13 @@
+-- |
+--   Copyright   :  (c) Sam Truzjan 2013
+--   License     :  BSD3
+--   Maintainer  :  pxqr.sta@gmail.com
+--   Stability   :  stable
+--   Portability :  portable
+--
+--   This module provides bencode values serialization. Normally, you
+--   don't need to import this module.
+--
 module Data.BEncode.Internal
        ( decode
        , encode
