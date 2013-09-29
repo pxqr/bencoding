@@ -20,13 +20,19 @@ import Data.ByteString
 
 import Data.BEncode.BDict
 
-
+-- | A bencode "integer".
 type BInteger = Integer
+
+-- | A raw bencode string.
 type BString  = ByteString
+
+-- | A plain bencode list.
 type BList    = [BValue]
+
+-- | A bencode dictionary.
 type BDict    = BDictMap BValue
 
--- | 'BEncode' is straightforward ADT for b-encoded values. Please
+-- | 'BValue' is straightforward ADT for b-encoded values. Please
 -- note that since dictionaries are sorted, in most cases we can
 -- compare BEncoded values without serialization and vice versa.
 -- Lists is not required to be sorted through.
