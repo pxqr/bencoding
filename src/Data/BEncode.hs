@@ -786,20 +786,20 @@ parser = valueP
             case c of
               -- if we have digit it always should be string length
               di | di <= '9' -> BString <$> stringP
-              'i' -> P.anyChar *> ((BInteger <$> integerP) <* P.anyChar)
-              'l' -> P.anyChar *> ((BList    <$> listBody) <* P.anyChar)
-              'd' -> P.anyChar *>  (BDict    <$> dictBodyP)<* P.anyChar
+              'i' -> P.anyChar *> ((BInteger <$> integerP)  <* P.anyChar)
+              'l' -> P.anyChar *> ((BList    <$> listBodyP) <* P.anyChar)
+              'd' -> P.anyChar *>  (BDict    <$> dictBodyP) <* P.anyChar
               t   -> fail ("bencode unknown tag: " ++ [t])
 
     dictBodyP :: Parser BDict
     dictBodyP = Cons <$> stringP <*> valueP <*> dictBodyP
             <|> pure Nil
 
-    listBody = do
+    listBodyP = do
       c <- P.peekChar
       case c of
         Just 'e' -> return []
-        _        -> (:) <$> valueP <*> listBody
+        _        -> (:) <$> valueP <*> listBodyP
 
     stringP :: Parser ByteString
     stringP = do
