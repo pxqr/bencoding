@@ -57,14 +57,7 @@
 #endif
 
 module Data.BEncode
-       ( -- * Datatype
-         BInteger
-       , BString
-       , BList
-       , BDict
-       , BKey
-
-       , BValue (..)
+       ( BValue (..)
 
          -- * Conversion
        , BEncode (..)

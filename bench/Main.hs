@@ -22,6 +22,7 @@ import             Data.AttoBencode as B
 import             Data.AttoBencode.Parser as B
 import "bencoding" Data.BEncode     as C
 import "bencoding" Data.BEncode.Internal as C
+import "bencoding" Data.BEncode.Types    as C
 
 instance NFData A.BEncode where
     rnf (A.BInt    i) = rnf i
