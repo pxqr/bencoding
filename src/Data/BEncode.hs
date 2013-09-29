@@ -763,10 +763,10 @@ builder = go
                         foldMap go l <>
                         B.word8 (c2w 'e')
       go (BDict    d) = B.word8 (c2w 'd') <>
-                        foldMap mkKV (BD.toAscList d) <>
+                        bifoldMap mkKV d <>
                         B.word8 (c2w 'e')
           where
-            mkKV (k, v) = buildString k <> go v
+            mkKV k v = buildString k <> go v
 
       buildString s = B.intDec (B.length s) <>
                       B.word8 (c2w ':') <>

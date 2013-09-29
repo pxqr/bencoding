@@ -14,6 +14,7 @@ module Data.BEncode.BDict
 
          -- * Transformations
        , Data.BEncode.BDict.map
+       , Data.BEncode.BDict.bifoldMap
 
          -- * Conversion
        , Data.BEncode.BDict.fromAscList
@@ -22,6 +23,7 @@ module Data.BEncode.BDict
 
 import Control.DeepSeq
 import Data.ByteString as BS
+import Data.Foldable
 import Data.Monoid
 
 
@@ -48,7 +50,12 @@ instance Functor BDictMap where
   fmap = Data.BEncode.BDict.map
   {-# INLINE fmap #-}
 
---instance Foldable BDictMap where
+instance Foldable BDictMap where
+  foldMap f = go
+    where
+      go  Nil          = mempty
+      go (Cons _ v xs) = f v `mappend` go xs
+  {-# INLINE foldMap #-}
 
 instance Monoid (BDictMap a) where
   mempty  = Data.BEncode.BDict.empty
@@ -80,6 +87,13 @@ map f = go
     go Nil = Nil
     go (Cons k v xs) = Cons k (f v) (go xs)
 {-# INLINE map #-}
+
+bifoldMap :: Monoid m => (BKey -> a -> m) -> BDictMap a -> m
+bifoldMap f = go
+  where
+    go  Nil          = mempty
+    go (Cons k v xs) = f k v `mappend` go xs
+{-# INLINE bifoldMap #-}
 
 fromAscList :: [(BKey, a)] -> BDictMap a
 fromAscList [] = Nil
