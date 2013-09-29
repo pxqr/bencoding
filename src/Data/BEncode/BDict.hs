@@ -1,6 +1,6 @@
 module Data.BEncode.BDict
        ( BKey
-       , BDictMap
+       , BDictMap (..)
 
          -- * Construction
        , Data.BEncode.BDict.empty

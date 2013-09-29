@@ -788,12 +788,12 @@ parser = valueP
               di | di <= '9' -> BString <$> stringP
               'i' -> P.anyChar *> ((BInteger <$> integerP) <* P.anyChar)
               'l' -> P.anyChar *> ((BList    <$> listBody) <* P.anyChar)
-              'd' -> do
-                     P.anyChar
-                     (BDict . BD.fromAscList <$>
-                          many ((,) <$> stringP <*> valueP))
-                       <* P.anyChar
+              'd' -> P.anyChar *>  (BDict    <$> dictBodyP)<* P.anyChar
               t   -> fail ("bencode unknown tag: " ++ [t])
+
+    dictBodyP :: Parser BDict
+    dictBodyP = Cons <$> stringP <*> valueP <*> dictBodyP
+            <|> pure Nil
 
     listBody = do
       c <- P.peekChar
