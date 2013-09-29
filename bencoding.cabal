@@ -39,6 +39,8 @@ library
   default-extensions:  PatternGuards
   hs-source-dirs:      src
   exposed-modules:     Data.BEncode
+                     , Data.BEncode.BDict
+
   build-depends:       base       == 4.*
                      , ghc-prim
                      , deepseq    == 1.3.*
