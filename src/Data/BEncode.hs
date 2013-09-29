@@ -106,6 +106,7 @@ import Control.Applicative
 import Control.DeepSeq
 import Control.Monad
 import Data.Int
+import Data.List as L
 import Data.Maybe         (mapMaybe)
 import Data.Monoid
 import Data.Foldable      (foldMap)
@@ -113,6 +114,7 @@ import Data.Traversable   (traverse)
 import Data.Word          (Word8, Word16, Word32, Word64, Word)
 import           Data.Map (Map)
 import qualified Data.Map as M
+import           Data.HashMap.Strict as HM
 import           Data.Set (Set)
 import qualified Data.Set as S
 import           Data.Attoparsec.ByteString.Char8 (Parser)
@@ -124,6 +126,7 @@ import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.ByteString.Lazy.Builder as B
 import qualified Data.ByteString.Lazy.Builder.ASCII as B
 import           Data.ByteString.Internal as B (c2w, w2c)
+import           Data.Ord
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as T
 import           Data.Typeable
@@ -139,7 +142,7 @@ import GHC.Generics
 type BInteger = Integer
 type BString  = ByteString
 type BList    = [BValue]
-type BDict    = Map BKey BValue
+type BDict    = HashMap BKey BValue
 type BKey     = ByteString
 
 -- | 'BEncode' is straightforward ADT for b-encoded values. Please
@@ -152,7 +155,7 @@ data BValue
   | BString  !BString  -- ^ bencode strings;
   | BList     BList    -- ^ list of bencode values;
   | BDict     BDict    -- ^ bencode key-value dictionary.
-    deriving (Show, Read, Eq, Ord)
+    deriving (Show, Eq)
 
 instance NFData BValue where
     rnf (BInteger i) = rnf i
@@ -295,7 +298,7 @@ gfromM1S :: forall c. Selector c
          => GBEncodable f BValue
          => BDict -> Result (M1 i c f p)
 gfromM1S dict
-  | Just va <- M.lookup (BC.pack (selRename name)) dict = M1 <$> gfrom va
+  | Just va <- HM.lookup (BC.pack (selRename name)) dict = M1 <$> gfrom va
   | otherwise = decodingError $ "generic: Selector not found " ++ show name
   where
     name = selName (error "gfromM1S: impossible" :: M1 i c f p)
@@ -303,7 +306,7 @@ gfromM1S dict
 instance (Selector s, GBEncodable f BValue)
        => GBEncodable (M1 S s f) BDict where
   {-# INLINE gto #-}
-  gto s @ (M1 x) = BC.pack (selRename (selName s)) `M.singleton` gto x
+  gto s @ (M1 x) = BC.pack (selRename (selName s)) `HM.singleton` gto x
 
   {-# INLINE gfrom #-}
   gfrom = gfromM1S
@@ -500,25 +503,31 @@ instance BEncode Text where
 
 instance BEncode a => BEncode [a] where
   {-# SPECIALIZE instance BEncode BList #-}
-  toBEncode = BList . map toBEncode
+  toBEncode = BList . L.map toBEncode
   {-# INLINE toBEncode #-}
 
   fromBEncode (BList xs) = mapM fromBEncode xs
   fromBEncode _          = decodingError "list"
   {-# INLINE fromBEncode #-}
 
-instance BEncode a => BEncode (Map BKey a) where
+instance BEncode a => BEncode (HashMap BKey a) where
   {-# SPECIALIZE instance BEncode BDict #-}
-  toBEncode = BDict . M.map toBEncode
+  toBEncode = BDict . HM.map toBEncode
   {-# INLINE toBEncode #-}
 
   fromBEncode (BDict d) = traverse fromBEncode d
   fromBEncode _         = decodingError "dictionary"
   {-# INLINE fromBEncode #-}
 
+instance BEncode a => BEncode (Map BKey a) where
+  {-# SPECIALIZE instance BEncode (Map BKey BValue) #-}
+  toBEncode   = BDict . HM.map toBEncode . HM.fromList . M.toList
+  fromBEncode (BDict d) = (M.fromList . HM.toList) <$> traverse fromBEncode d
+  fromBEncode _         = decodingError "dictionary"
+
 instance (Eq a, BEncode a) => BEncode (Set a) where
   {-# SPECIALIZE instance BEncode (Set BValue)  #-}
-  toBEncode = BList . map toBEncode . S.toAscList
+  toBEncode = BList . L.map toBEncode . S.toAscList
   {-# INLINE toBEncode #-}
 
   fromBEncode (BList xs) = S.fromAscList <$> traverse fromBEncode xs
@@ -639,13 +648,13 @@ key -->? mval = Assoc $ ((,) key . toBEncode) <$> mval
 
 -- | Build BEncode dictionary using key -> value description.
 fromAssocs :: [Assoc] -> BValue
-fromAssocs = BDict . M.fromList . mapMaybe unAssoc
+fromAssocs = BDict . HM.fromList . mapMaybe unAssoc
 {-# INLINE fromAssocs #-}
 
 -- | A faster version of 'fromAssocs'. Should be used only when keys
 -- in builder list are sorted by ascending.
 fromAscAssocs :: [Assoc] -> BValue
-fromAscAssocs = BDict . M.fromAscList . mapMaybe unAssoc
+fromAscAssocs = BDict . HM.fromList . mapMaybe unAssoc
 {-# INLINE fromAscAssocs #-}
 
 {--------------------------------------------------------------------
@@ -670,7 +679,7 @@ fromAscAssocs = BDict . M.fromAscList . mapMaybe unAssoc
 --  then whole destructuring fail.
 reqKey :: BEncode a => BDict -> BKey -> Result a
 reqKey d key
-  | Just b <- M.lookup key d = fromBEncode b
+  | Just b <- HM.lookup key d = fromBEncode b
   |        otherwise         = Left msg
   where
     msg = "required field `" ++ BC.unpack key ++ "' not found"
@@ -679,7 +688,7 @@ reqKey d key
 -- 'Nothing'.
 optKey :: BEncode a => BDict -> BKey -> Result (Maybe a)
 optKey d key
-  | Just b <- M.lookup key d
+  | Just b <- HM.lookup key d
   , Right r <- fromBEncode b = return (Just r)
   | otherwise                = return Nothing
 
@@ -758,8 +767,8 @@ builder = go
       go (BList    l) = B.word8 (c2w 'l') <>
                         foldMap go l <>
                         B.word8 (c2w 'e')
-      go (BDict    d) = B.word8 (c2w 'd') <>
-                        foldMap mkKV (M.toAscList d) <>
+      go (BDict    d) = B.word8 (c2w 'd') <> -- TODO hashsort
+                        foldMap mkKV (L.sortBy (comparing fst) $ HM.toList d) <>
                         B.word8 (c2w 'e')
           where
             mkKV (k, v) = buildString k <> go v
@@ -786,7 +795,7 @@ parser = valueP
               'l' -> P.anyChar *> ((BList    <$> listBody) <* P.anyChar)
               'd' -> do
                      P.anyChar
-                     (BDict . M.fromDistinctAscList <$>
+                     (BDict . HM.fromList <$>
                           many ((,) <$> stringP <*> valueP))
                        <* P.anyChar
               t   -> fail ("bencode unknown tag: " ++ [t])
@@ -819,15 +828,16 @@ parser = valueP
 --------------------------------------------------------------------}
 
 ppBS :: ByteString -> Doc
-ppBS = text . map w2c . B.unpack
+ppBS = text . L.map w2c . B.unpack
 
 -- | Convert to easily readable JSON-like document. Typically used for
 -- debugging purposes.
 ppBEncode :: BValue -> Doc
 ppBEncode (BInteger i) = int $ fromIntegral i
 ppBEncode (BString  s) = ppBS s
-ppBEncode (BList    l) = brackets $ hsep $ punctuate comma $ map ppBEncode l
+ppBEncode (BList    l)
+    = brackets $ hsep $ punctuate comma $ L.map ppBEncode l
 ppBEncode (BDict    d)
-    = braces $ vcat $ punctuate comma $ map ppKV $ M.toAscList d
+    = braces $ vcat $ punctuate comma $ L.map ppKV $ HM.toList d
   where
     ppKV (k, v) = ppBS k <+> colon <+> ppBEncode v
