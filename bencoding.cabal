@@ -49,7 +49,6 @@ library
 
                      , attoparsec >= 0.10
                      , bytestring >= 0.10.0.2
-                     , containers >= 0.4
                      , text       >= 0.11
                      , pretty
   ghc-options:         -Wall -fno-warn-unused-do-bind
