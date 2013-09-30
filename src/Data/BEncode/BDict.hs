@@ -5,8 +5,8 @@
 --   Stability   :  stable
 --   Portability :  portable
 --
---   This module defines a simple key value list which both faster and
---   more suitable for bencode dictionaries.
+--   This module defines a simple key\/value list which both faster
+--   and more suitable for bencode dictionaries then just [(k,v)].
 --
 module Data.BEncode.BDict
        ( BKey
@@ -22,7 +22,7 @@ module Data.BEncode.BDict
          -- * Combine
        , Data.BEncode.BDict.union
 
-         -- * Transformations
+         -- * Traversal
        , Data.BEncode.BDict.map
        , Data.BEncode.BDict.bifoldMap
 
@@ -46,7 +46,7 @@ type BKey = ByteString
 -- one more constructor per cell
 --
 
--- | BDictMap is list of key value pairs sorted by keys.
+-- | BDictMap is an ascending list of key\/value pairs sorted by keys.
 data BDictMap a
   = Cons !BKey a !(BDictMap a)
   | Nil
@@ -71,14 +71,17 @@ instance Monoid (BDictMap a) where
   mempty  = Data.BEncode.BDict.empty
   mappend = Data.BEncode.BDict.union
 
+-- | /O(1)/. The empty dicionary.
 empty :: BDictMap a
 empty = Nil
 {-# INLINE empty #-}
 
+-- | /O(1)/. Dictionary of one key-value pair.
 singleton :: BKey -> a -> BDictMap a
 singleton k v = Cons k v Nil
 {-# INLINE singleton #-}
 
+-- | /O(n)/. Lookup the value at a key in the dictionary.
 lookup :: BKey -> BDictMap a -> Maybe a
 lookup x = go
   where
@@ -88,6 +91,9 @@ lookup x = go
       | otherwise = go xs
 {-# INLINE lookup #-}
 
+-- | /O(n + m)/. Merge two dictionaries by taking pair from both given
+-- dictionaries. Dublicated keys are /not/ filtered.
+--
 union :: BDictMap a -> BDictMap a -> BDictMap a
 union Nil xs  = xs
 union xs  Nil = xs
@@ -95,6 +101,7 @@ union bd @ (Cons k v xs) bd' @ (Cons k' v' xs')
   |   k < k'  = Cons k  v  (union xs bd')
   | otherwise = Cons k' v' (union bd xs')
 
+-- | /O(n)./ Map a function over all values in the dictionary.
 map :: (a -> b) -> BDictMap a -> BDictMap b
 map f = go
   where
@@ -102,6 +109,9 @@ map f = go
     go (Cons k v xs) = Cons k (f v) (go xs)
 {-# INLINE map #-}
 
+-- | /O(n)/. Map each key\/value pair to a monoid and fold resulting
+-- sequnce using 'mappend'.
+--
 bifoldMap :: Monoid m => (BKey -> a -> m) -> BDictMap a -> m
 bifoldMap f = go
   where
@@ -109,10 +119,16 @@ bifoldMap f = go
     go (Cons k v xs) = f k v `mappend` go xs
 {-# INLINE bifoldMap #-}
 
+-- | /O(n)/. Build a dictionary from a list of key\/value pairs where
+-- the keys are in ascending order.
+--
 fromAscList :: [(BKey, a)] -> BDictMap a
 fromAscList [] = Nil
 fromAscList ((k, v) : xs) = Cons k v (fromAscList xs)
 
+-- | /O(n)/. Convert the dictionary to a list of key\/value pairs
+-- where the keys are in ascending order.
+--
 toAscList :: BDictMap a -> [(BKey, a)]
 toAscList Nil = []
 toAscList (Cons k v xs) = (k, v) : toAscList xs
