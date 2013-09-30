@@ -17,6 +17,8 @@ module Data.BEncode.BDict
        , Data.BEncode.BDict.singleton
 
          -- * Query
+       , Data.BEncode.BDict.null
+       , Data.BEncode.BDict.member
        , Data.BEncode.BDict.lookup
 
          -- * Combine
@@ -80,6 +82,21 @@ empty = Nil
 singleton :: BKey -> a -> BDictMap a
 singleton k v = Cons k v Nil
 {-# INLINE singleton #-}
+
+-- | /O(1)/. Is the dictionary empty?
+null :: BDictMap a -> Bool
+null Nil = True
+null _   = False
+{-# INLINE null #-}
+
+-- | /O(n)/. Is the key a member of the dictionary?
+member :: BKey -> BDictMap a -> Bool
+member key = go
+  where
+    go  Nil          = False
+    go (Cons k _ xs)
+      | k == key  = True
+      | otherwise = go xs
 
 -- | /O(n)/. Lookup the value at a key in the dictionary.
 lookup :: BKey -> BDictMap a -> Maybe a
