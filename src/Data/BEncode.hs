@@ -61,7 +61,6 @@ module Data.BEncode
 
          -- * Conversion
        , BEncode (..)
-       , Result
 
          -- * Serialization
        , encode
@@ -77,14 +76,9 @@ module Data.BEncode
        , toDict
 
          -- *** Extraction
-       , decodingError
-       , reqKey
-       , optKey
-       , (>--)
-       , (>--?)
-
-         -- *** Extraction
        , Get
+       , Result
+       , decodingError
        , fromDict
 
        , next
@@ -562,64 +556,6 @@ instance (BEncode a, BEncode b, BEncode c, BEncode d, BEncode e)
   {-# INLINE fromBEncode #-}
 
 {--------------------------------------------------------------------
---  Dictionary extraction
---------------------------------------------------------------------}
-
-newtype Get a = Get { runGet :: StateT BDict Result a }
-  deriving (Functor, Applicative, Alternative)
-
-next :: Get BValue
-next = Get (StateT go)
-  where
-    go  Nil          = throwError "no next"
-    go (Cons _ v xs) = pure (v, xs)
-
-req :: BKey -> Get BValue
-req !key = Get (StateT search)
-  where
-    search  Nil          = Left msg
-    search (Cons k v xs) =
-      case compare k key of
-        EQ -> Right (v, xs)
-        LT -> search xs
-        GT -> Left msg
-
-    msg = "required field `" ++ BC.unpack key ++ "' not found"
-{-# INLINE req #-}
-
-opt :: BKey -> Get (Maybe BValue)
-opt = optional . req
-{-# INLINE opt #-}
-
-{-# SPECIALIZE field :: Get BValue -> Get BValue #-}
-field :: BEncode a => Get BValue -> Get a
-field m = Get $ do
-  v <- runGet m
-  either throwError pure $ fromBEncode v
-
-(<$>!) :: BEncode a => (a -> b) -> BKey -> Get b
-f <$>! k = f <$> field (req k)
-{-# INLINE (<$>!) #-}
-
-(<$>?) :: BEncode a => (Maybe a -> b) -> BKey -> Get b
-f <$>? k = f <$> optional (field (req k))
-{-# INLINE (<$>?) #-}
-
-(<*>!) :: BEncode a => Get (a -> b) -> BKey -> Get b
-f <*>! k = f <*> field (req k)
-{-# INLINE (<*>!) #-}
-
-(<*>?) :: BEncode a => Get (Maybe a -> b) -> BKey -> Get b
-f <*>? k = f <*> optional (field (req k))
-{-# INLINE (<*>?) #-}
-
-fromDict :: forall a. Typeable a => Get a -> BValue -> Result a
-fromDict m (BDict d) = evalStateT (runGet m) d
-fromDict _  _        = decodingError (show (typeOf inst))
-  where
-    inst = error "fromDict: impossible" :: a
-
-{--------------------------------------------------------------------
   Building dictionaries
 --------------------------------------------------------------------}
 
@@ -690,7 +626,7 @@ endDict = Nil
 {-# INLINE endDict #-}
 
 {--------------------------------------------------------------------
-  Dictionary extraction
+--  Dictionary extraction
 --------------------------------------------------------------------}
 
 -- | Dictionary extractor are similar to dictionary builders, but play
@@ -709,31 +645,60 @@ endDict = Nil
 --
 --  The /reqKey/ is used to extract required key — if lookup is failed
 --  then whole destructuring fail.
-reqKey :: BEncode a => BDict -> BKey -> Result a
-reqKey d key
-  | Just b <- BD.lookup key d = fromBEncode b
-  |        otherwise         = Left msg
+--
+newtype Get a = Get { runGet :: StateT BDict Result a }
+  deriving (Functor, Applicative, Alternative)
+
+next :: Get BValue
+next = Get (StateT go)
   where
+    go  Nil          = throwError "no next"
+    go (Cons _ v xs) = pure (v, xs)
+
+req :: BKey -> Get BValue
+req !key = Get (StateT search)
+  where
+    search  Nil          = Left msg
+    search (Cons k v xs) =
+      case compare k key of
+        EQ -> Right (v, xs)
+        LT -> search xs
+        GT -> Left msg
+
     msg = "required field `" ++ BC.unpack key ++ "' not found"
+{-# INLINE req #-}
 
--- | Used to extract optional key — if lookup is failed returns
--- 'Nothing'.
-optKey :: BEncode a => BDict -> BKey -> Result (Maybe a)
-optKey d key
-  | Just b <- BD.lookup key d
-  , Right r <- fromBEncode b = return (Just r)
-  | otherwise                = return Nothing
+opt :: BKey -> Get (Maybe BValue)
+opt = optional . req
+{-# INLINE opt #-}
 
--- | Infix version of the 'reqKey'.
-(>--) :: BEncode a => BDict -> BKey -> Result a
-(>--) = reqKey
-{-# INLINE (>--) #-}
+{-# SPECIALIZE field :: Get BValue -> Get BValue #-}
+field :: BEncode a => Get BValue -> Get a
+field m = Get $ do
+  v <- runGet m
+  either throwError pure $ fromBEncode v
 
--- | Infix version of the 'optKey'.
-(>--?) :: BEncode a => BDict -> BKey -> Result (Maybe a)
-(>--?) = optKey
-{-# INLINE (>--?) #-}
+(<$>!) :: BEncode a => (a -> b) -> BKey -> Get b
+f <$>! k = f <$> field (req k)
+{-# INLINE (<$>!) #-}
 
+(<$>?) :: BEncode a => (Maybe a -> b) -> BKey -> Get b
+f <$>? k = f <$> optional (field (req k))
+{-# INLINE (<$>?) #-}
+
+(<*>!) :: BEncode a => Get (a -> b) -> BKey -> Get b
+f <*>! k = f <*> field (req k)
+{-# INLINE (<*>!) #-}
+
+(<*>?) :: BEncode a => Get (Maybe a -> b) -> BKey -> Get b
+f <*>? k = f <*> optional (field (req k))
+{-# INLINE (<*>?) #-}
+
+fromDict :: forall a. Typeable a => Get a -> BValue -> Result a
+fromDict m (BDict d) = evalStateT (runGet m) d
+fromDict _  _        = decodingError (show (typeOf inst))
+  where
+    inst = error "fromDict: impossible" :: a
 
 {--------------------------------------------------------------------
   Encoding
