@@ -648,13 +648,13 @@ fromDict _  _        = decodingError (show (typeOf inst))
 --  >     ]
 --  >     ...
 --
-data Assoc = Some BKey BValue
+data Assoc = Some !BKey BValue
            | None
 
 -- TODO better name
 -- | Make required key value pair.
 (.=!) :: BEncode a => BKey -> a -> Assoc
-k .=! v = Some k (toBEncode v)
+(!k) .=! v = Some k (toBEncode v)
 {-# INLINE (.=!) #-}
 
 infix 6 .=!
