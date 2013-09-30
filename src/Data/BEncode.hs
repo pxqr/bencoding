@@ -58,16 +58,12 @@
 
 module Data.BEncode
        ( BValue (..)
-
-         -- * Conversion
        , BEncode (..)
-
-         -- * Serialization
        , encode
        , decode
 
-         -- ** Dictionaries
-         -- *** Building
+         -- * Helpers
+         -- ** Building
        , Assoc
        , (.=!)
        , (.=?)
@@ -75,7 +71,7 @@ module Data.BEncode
        , endDict
        , toDict
 
-         -- *** Extraction
+         -- ** Extraction
        , Get
        , Result
        , decodingError
