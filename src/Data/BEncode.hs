@@ -70,10 +70,11 @@ module Data.BEncode
          -- ** Dictionaries
          -- *** Building
        , Assoc
-       , (-->)
-       , (-->?)
-       , fromAssocs
-       , fromAscAssocs
+       , (.=!)
+       , (.=?)
+       , (.:)
+       , endDict
+       , toDict
 
          -- *** Extraction
        , decodingError
@@ -81,11 +82,26 @@ module Data.BEncode
        , optKey
        , (>--)
        , (>--?)
+
+         -- *** Extraction
+       , Get
+       , fromDict
+
+       , req
+       , opt
+       , field
+
+       , (<$>!)
+       , (<$>?)
+       , (<*>!)
+       , (<*>?)
        ) where
 
 
 import Control.Applicative
 import Control.Monad
+import Control.Monad.State
+import Control.Monad.Error
 import Data.Int
 import Data.List as L
 import Data.Maybe         (mapMaybe)
@@ -546,9 +562,67 @@ instance (BEncode a, BEncode b, BEncode c, BEncode d, BEncode e)
   {-# INLINE fromBEncode #-}
 
 {--------------------------------------------------------------------
-  Building dictionaries
+--  Dictionary extraction
 --------------------------------------------------------------------}
 
+newtype Get a = Get { runGet :: StateT BDict Result a }
+  deriving (Functor, Applicative, Alternative)
+
+next :: Get BValue
+next = Get (StateT go)
+  where
+    go  Nil          = throwError "no next"
+    go (Cons _ v xs) = pure (v, xs)
+
+req :: BKey -> Get BValue
+req !key = Get (StateT search)
+  where
+    search  Nil          = Left msg
+    search (Cons k v xs) =
+      case compare k key of
+        EQ -> Right (v, xs)
+        LT -> search xs
+        GT -> Left msg
+
+    msg = "required field `" ++ BC.unpack key ++ "' not found"
+{-# INLINE req #-}
+
+opt :: BKey -> Get (Maybe BValue)
+opt = optional . req
+{-# INLINE opt #-}
+
+{-# SPECIALIZE field :: Get BValue -> Get BValue #-}
+field :: BEncode a => Get BValue -> Get a
+field m = Get $ do
+  v <- runGet m
+  either throwError pure $ fromBEncode v
+
+(<$>!) :: BEncode a => (a -> b) -> BKey -> Get b
+f <$>! k = f <$> field (req k)
+{-# INLINE (<$>!) #-}
+
+(<$>?) :: BEncode a => (Maybe a -> b) -> BKey -> Get b
+f <$>? k = f <$> optional (field (req k))
+{-# INLINE (<$>?) #-}
+
+(<*>!) :: BEncode a => Get (a -> b) -> BKey -> Get b
+f <*>! k = f <*> field (req k)
+{-# INLINE (<*>!) #-}
+
+(<*>?) :: BEncode a => Get (Maybe a -> b) -> BKey -> Get b
+f <*>? k = f <*> optional (field (req k))
+{-# INLINE (<*>?) #-}
+
+fromDict :: forall a. Typeable a => Get a -> BValue -> Result a
+fromDict m (BDict d) = evalStateT (runGet m) d
+fromDict _  _        = decodingError (show (typeOf inst))
+  where
+    inst = error "fromDict: impossible" :: a
+
+{--------------------------------------------------------------------
+  Building dictionaries
+--------------------------------------------------------------------}
+{-
 -- | /Assoc/ used to easily build dictionaries with required and
 -- optional keys. Suppose we have we following datatype we want to
 -- serialize:
@@ -598,6 +672,39 @@ fromAssocs = undefined -- BDict . M.fromList . mapMaybe unAssoc
 fromAscAssocs :: [Assoc] -> BValue
 fromAscAssocs = BDict . BD.fromAscList . mapMaybe unAssoc
 {-# INLINE fromAscAssocs #-}
+-}
+
+type BPair = (BKey, BValue)
+type Assoc = Maybe BPair
+
+-- TODO better name
+(.=!) :: BEncode a => BKey -> a -> Assoc
+k .=! v = Just (k, toBEncode v)
+{-# INLINE (.=!) #-}
+
+infix 6 .=!
+
+(.=?) :: BEncode a => BKey -> Maybe a -> Assoc
+_ .=? Nothing = Nothing
+k .=? Just v  = Just (k, toBEncode v)
+{-# INLINE (.=?) #-}
+
+infix 6 .=?
+
+(.:) :: Assoc -> BDict -> BDict
+Nothing     .: d = d
+Just (k, v) .: d = Cons k v d
+{-# INLINE (.:) #-}
+
+infixr 5 .:
+
+toDict :: BDict -> BValue
+toDict = BDict
+{-# INLINE toDict #-}
+
+endDict :: BDict
+endDict = Nil
+{-# INLINE endDict #-}
 
 {--------------------------------------------------------------------
   Dictionary extraction

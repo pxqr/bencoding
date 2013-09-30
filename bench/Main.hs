@@ -1,7 +1,9 @@
-{-# LANGUAGE PackageImports    #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE RecordWildCards   #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE PackageImports     #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE RecordWildCards    #-}
+{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE BangPatterns       #-}
 module Main (main) where
 
 import Control.Applicative
@@ -12,6 +14,7 @@ import qualified Data.ByteString.Lazy as BL
 import Data.List as L
 import Data.Maybe
 import Data.Monoid
+import Data.Typeable
 import System.Environment
 
 import Criterion.Main
@@ -23,6 +26,8 @@ import             Data.AttoBencode.Parser as B
 import "bencoding" Data.BEncode     as C
 import "bencoding" Data.BEncode.Internal as C
 import "bencoding" Data.BEncode.Types    as C
+import Debug.Trace
+
 
 instance NFData A.BEncode where
     rnf (A.BInt    i) = rnf i
@@ -62,47 +67,47 @@ replicate' c x
 
 data Torrent = Torrent {
     tAnnounce     :: !ByteString
-  , tInfo         :: !BDict
   , tAnnounceList :: !(Maybe ByteString)
   , tComment      :: !(Maybe ByteString)
   , tCreatedBy    :: !(Maybe ByteString)
   , tCreationDate :: !(Maybe ByteString)
   , tEncoding     :: !(Maybe ByteString)
+  , tInfo         :: !BDict
   , tPublisher    :: !(Maybe ByteString)
   , tPublisherURL :: !(Maybe ByteString)
   , tSignature    :: !(Maybe ByteString)
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Typeable)
 
 instance NFData Torrent where
   rnf Torrent {..} = ()
 
 instance C.BEncode Torrent where
-  toBEncode Torrent {..} = fromAscAssocs
-    [ "announce"      -->  tAnnounce
-    , "announce-list" -->? tAnnounceList
-    , "comment"       -->? tComment
-    , "created by"    -->? tCreatedBy
-    , "creation date" -->? tCreationDate
-    , "encoding"      -->? tEncoding
-    , "info"          -->  tInfo
-    , "publisher"     -->? tPublisher
-    , "publisher-url" -->? tPublisherURL
-    , "signature"     -->? tSignature
-    ]
+  toBEncode Torrent {..} = toDict $
+         "announce"      .=! tAnnounce
+    C..: "announce-list" .=? tAnnounceList
+    C..: "comment"       .=? tComment
+    C..: "created by"    .=? tCreatedBy
+    C..: "creation date" .=? tCreationDate
+    C..: "encoding"      .=? tEncoding
+    C..: "info"          .=!  tInfo
+    C..: "publisher"     .=? tPublisher
+    C..: "publisher-url" .=? tPublisherURL
+    C..: "signature"     .=? tSignature
+    C..: endDict
 
-  fromBEncode (C.BDict d) =
-    Torrent <$> d >--  "announce"
-            <*> d >--  "info"
-            <*> d >--? "announce-list"
-            <*> d >--? "comment"
-            <*> d >--? "created by"
-            <*> d >--? "creation date"
-            <*> d >--? "encoding"
-            <*> d >--? "publisher"
-            <*> d >--? "publisher-url"
-            <*> d >--? "signature"
 
-  fromBEncode _ = decodingError "Torrent"
+
+  fromBEncode = fromDict $ do
+    Torrent <$>! "announce"
+            <*>? "announce-list"
+            <*>? "comment"
+            <*>? "created by"
+            <*>? "creation date"
+            <*>? "encoding"
+            <*>! "info"
+            <*>? "publisher"
+            <*>? "publisher-url"
+            <*>? "signature"
 
 {-----------------------------------------------------------------------
 --  Main
@@ -175,11 +180,21 @@ main = do
                 :: List Int -> List Int)
                d
 
-       , let Right be = C.parse torrentFile
+       , let Right !be = C.parse torrentFile
              id'   x  = let t = either error id (fromBEncode x)
                         in toBEncode (t :: Torrent)
+             !test = let Right t = C.decode torrentFile
+                     in if C.decode (BL.toStrict (C.encode t))
+                           /= Right (t :: Torrent)
+                        then error "invalid instance: BEncode Torrent"
+                        else True
 
-         in bench "bigdict" $ nf
-              (appEndo $ mconcat $ L.replicate 1000 (Endo id'))
-              be
+             replFn n f = go n
+               where go 0 = id
+                     go n = f . go (pred n)
+
+         in bench "bigdict" $ nf (replFn (1000 :: Int) id') be
+
+       , let fn x = let Right t = C.decode x in t :: Torrent
+         in bench "torrent/decode" $ nf fn torrentFile
        ]

@@ -48,12 +48,12 @@ type BKey = ByteString
 
 -- | BDictMap is list of key value pairs sorted by keys.
 data BDictMap a
-  = Cons !BKey a (BDictMap a)
+  = Cons !BKey a !(BDictMap a)
   | Nil
     deriving (Show, Read, Eq, Ord)
 
 instance NFData a => NFData (BDictMap a) where
-  rnf Nil = ()
+  rnf  Nil         = ()
   rnf (Cons _ v xs)= rnf v `seq` rnf xs
 
 instance Functor BDictMap where
