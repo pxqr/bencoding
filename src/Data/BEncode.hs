@@ -87,6 +87,7 @@ module Data.BEncode
        , Get
        , fromDict
 
+       , next
        , req
        , opt
        , field
@@ -104,7 +105,6 @@ import Control.Monad.State
 import Control.Monad.Error
 import Data.Int
 import Data.List as L
-import Data.Maybe         (mapMaybe)
 import Data.Monoid
 import Data.Word          (Word8, Word16, Word32, Word64, Word)
 import           Data.ByteString (ByteString)

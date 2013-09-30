@@ -6,14 +6,12 @@
 {-# LANGUAGE BangPatterns       #-}
 module Main (main) where
 
-import Control.Applicative
 import Control.DeepSeq
 import Data.Attoparsec.ByteString as Atto
 import           Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BL
 import Data.List as L
 import Data.Maybe
-import Data.Monoid
 import Data.Typeable
 import System.Environment
 
@@ -26,7 +24,6 @@ import             Data.AttoBencode.Parser as B
 import "bencoding" Data.BEncode     as C
 import "bencoding" Data.BEncode.Internal as C
 import "bencoding" Data.BEncode.Types    as C
-import Debug.Trace
 
 
 instance NFData A.BEncode where
@@ -183,13 +180,13 @@ main = do
        , let Right !be = C.parse torrentFile
              id'   x  = let t = either error id (fromBEncode x)
                         in toBEncode (t :: Torrent)
-             !test = let Right t = C.decode torrentFile
+             !_ = let Right t = C.decode torrentFile
                      in if C.decode (BL.toStrict (C.encode t))
                            /= Right (t :: Torrent)
                         then error "invalid instance: BEncode Torrent"
                         else True
 
-             replFn n f = go n
+             replFn m f = go m
                where go 0 = id
                      go n = f . go (pred n)
 
