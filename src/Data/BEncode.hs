@@ -648,14 +648,13 @@ fromDict _  _        = decodingError (show (typeOf inst))
 --  >     ]
 --  >     ...
 --
-type Assoc = Maybe BPair
-
-type BPair = (BKey, BValue)
+data Assoc = Some BKey BValue
+           | None
 
 -- TODO better name
 -- | Make required key value pair.
 (.=!) :: BEncode a => BKey -> a -> Assoc
-k .=! v = Just (k, toBEncode v)
+k .=! v = Some k (toBEncode v)
 {-# INLINE (.=!) #-}
 
 infix 6 .=!
@@ -664,15 +663,15 @@ infix 6 .=!
 -- appear in resulting bencoded dictionary.
 --
 (.=?) :: BEncode a => BKey -> Maybe a -> Assoc
-_ .=? Nothing = Nothing
-k .=? Just v  = Just (k, toBEncode v)
+_ .=? Nothing = None
+k .=? Just v  = Some k (toBEncode v)
 {-# INLINE (.=?) #-}
 
 infix 6 .=?
 
 (.:) :: Assoc -> BDict -> BDict
-Nothing     .: d = d
-Just (k, v) .: d = Cons k v d
+None     .: d = d
+Some k v .: d = Cons k v d
 {-# INLINE (.:) #-}
 
 infixr 5 .:
