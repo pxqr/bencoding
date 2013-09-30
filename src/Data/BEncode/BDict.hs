@@ -89,7 +89,11 @@ lookup x = go
 {-# INLINE lookup #-}
 
 union :: BDictMap a -> BDictMap a -> BDictMap a
-union = undefined
+union Nil xs  = xs
+union xs  Nil = xs
+union bd @ (Cons k v xs) bd' @ (Cons k' v' xs')
+  |   k < k'  = Cons k  v  (union xs bd')
+  | otherwise = Cons k' v' (union bd xs')
 
 map :: (a -> b) -> BDictMap a -> BDictMap b
 map f = go
