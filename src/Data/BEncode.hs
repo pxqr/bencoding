@@ -566,24 +566,25 @@ instance (BEncode a, BEncode b, BEncode c, BEncode d, BEncode e)
 --  >   , fileTags   :: Maybe [Text]
 --  >   } deriving (Show, Read, Eq)
 --
--- We need to make /instance BEncodable FileInfo/, though we don't
--- want to check the both /maybes/ manually. The more declarative and
+-- We need to make /instance BEncode FileInfo/, though we don't want
+-- to check the both /maybes/ manually. The more declarative and
 -- convenient way to define the 'toBEncode' method is to use
 -- dictionary builders:
 --
---  > instance BEncodable FileInfo where
---  >   toBEncode FileInfo {..} = fromAssocs
---  >     [ "length" -->  fileLength
---  >     , "md5sum" -->? fileMD5sum
---  >     , "path"   -->  filePath
---  >     , "tags"   -->? fileTags
---  >     ]
---  >     ...
+--  > instance BEncode FileInfo where
+--  >   toBEncode FileInfo {..} = toDict $
+--  >        "length" .=! fileLength
+--  >     .: "md5sum" .=? fileMD5sum
+--  >     .: "path"   .=! filePath
+--  >     .: "tags"   .=? fileTags
+--  >     .: endDict
+--
+--  NOTE: the list of pair SHOULD be sorted lexicographically by keys,
+--  so: "length" < "md5sum" < "path" < "tags".
 --
 data Assoc = Some !BKey BValue
            | None
 
--- TODO better name
 -- | Make required key value pair.
 (.=!) :: BEncode a => BKey -> a -> Assoc
 (!k) .=! v = Some k (toBEncode v)
@@ -601,6 +602,7 @@ k .=? Just v  = Some k (toBEncode v)
 
 infix 6 .=?
 
+-- | Cons a key\/value pair.
 (.:) :: Assoc -> BDict -> BDict
 None     .: d = d
 Some k v .: d = Cons k v d
@@ -608,15 +610,12 @@ Some k v .: d = Cons k v d
 
 infixr 5 .:
 
--- | Build BEncode dictionary using key -> value description.
-
--- | A faster version of 'fromAssocs'. Should be used only when keys
--- in builder list are sorted by ascending.
---
+-- | Make a bencode value from dictionary description.
 toDict :: BDict -> BValue
 toDict = BDict
 {-# INLINE toDict #-}
 
+-- | Used to specify end of dictionary. See 'Assoc'.
 endDict :: BDict
 endDict = Nil
 {-# INLINE endDict #-}
@@ -643,7 +642,7 @@ endDict = Nil
 --  then whole destructuring fail.
 --
 newtype Get a = Get { runGet :: StateT BDict Result a }
-  deriving (Functor, Applicative, Alternative)
+  deriving (Functor, Applicative, Alternative, Monad)
 
 next :: Get BValue
 next = Get (StateT go)
