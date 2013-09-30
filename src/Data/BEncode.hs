@@ -622,7 +622,7 @@ fromDict _  _        = decodingError (show (typeOf inst))
 {--------------------------------------------------------------------
   Building dictionaries
 --------------------------------------------------------------------}
-{-
+
 -- | /Assoc/ used to easily build dictionaries with required and
 -- optional keys. Suppose we have we following datatype we want to
 -- serialize:
@@ -648,42 +648,21 @@ fromDict _  _        = decodingError (show (typeOf inst))
 --  >     ]
 --  >     ...
 --
-newtype Assoc = Assoc { unAssoc :: Maybe (ByteString, BValue) }
-
--- | Make required key value pair.
-(-->) :: BEncode a => BKey -> a -> Assoc
-key --> val = Assoc $ Just $ (key, toBEncode val)
-{-# INLINE (-->) #-}
-
--- | Like (-->) but if the value is not present then the key do not
--- appear in resulting bencoded dictionary.
---
-(-->?) :: BEncode a => BKey -> Maybe a -> Assoc
-key -->? mval = Assoc $ ((,) key . toBEncode) <$> mval
-{-# INLINE (-->?) #-}
-
--- | Build BEncode dictionary using key -> value description.
-fromAssocs :: [Assoc] -> BValue
-fromAssocs = undefined -- BDict . M.fromList . mapMaybe unAssoc
-{-# INLINE fromAssocs #-}
-
--- | A faster version of 'fromAssocs'. Should be used only when keys
--- in builder list are sorted by ascending.
-fromAscAssocs :: [Assoc] -> BValue
-fromAscAssocs = BDict . BD.fromAscList . mapMaybe unAssoc
-{-# INLINE fromAscAssocs #-}
--}
-
-type BPair = (BKey, BValue)
 type Assoc = Maybe BPair
 
+type BPair = (BKey, BValue)
+
 -- TODO better name
+-- | Make required key value pair.
 (.=!) :: BEncode a => BKey -> a -> Assoc
 k .=! v = Just (k, toBEncode v)
 {-# INLINE (.=!) #-}
 
 infix 6 .=!
 
+-- | Like (.=!) but if the value is not present then the key do not
+-- appear in resulting bencoded dictionary.
+--
 (.=?) :: BEncode a => BKey -> Maybe a -> Assoc
 _ .=? Nothing = Nothing
 k .=? Just v  = Just (k, toBEncode v)
@@ -698,6 +677,11 @@ Just (k, v) .: d = Cons k v d
 
 infixr 5 .:
 
+-- | Build BEncode dictionary using key -> value description.
+
+-- | A faster version of 'fromAssocs'. Should be used only when keys
+-- in builder list are sorted by ascending.
+--
 toDict :: BDict -> BValue
 toDict = BDict
 {-# INLINE toDict #-}
