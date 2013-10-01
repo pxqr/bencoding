@@ -593,7 +593,7 @@ data Assoc = Some !BKey BValue
 infix 6 .=!
 
 -- | Like (.=!) but if the value is not present then the key do not
--- appear in resulting bencoded dictionary.
+-- appear in resulting bencode dictionary.
 --
 (.=?) :: BEncode a => BKey -> Maybe a -> Assoc
 _ .=? Nothing = None
@@ -626,17 +626,15 @@ endDict = Nil
 
 -- | Dictionary extractor are similar to dictionary builders, but play
 -- the opposite role: they are used to define 'fromBEncode' method in
--- declarative style. Using the same /FileInfo/ datatype 'fromBEncode'
--- looks like:
+-- declarative style. Using the same /FileInfo/ datatype the
+-- 'fromBEncode' function instance looks like:
 --
 --  > instance BEncodable FileInfo where
---  >   ...
---  >   fromBEncode (BDict d) =
---  >     FileInfo <$> d >--  "length"
---  >              <*> d >--? "md5sum"
---  >              <*> d >--  "path"
---  >              <*> d >--? "tags"
---  >   fromBEncode _ = decodingError "FileInfo"
+--  >   fromBEncode = fromDict $ do
+--  >     FileInfo <$>! "length"
+--  >              <*>? "md5sum"
+--  >              <*>! "path"
+--  >              <*>? "tags"
 --
 --  The /reqKey/ is used to extract required key — if lookup is failed
 --  then whole destructuring fail.
@@ -644,12 +642,14 @@ endDict = Nil
 newtype Get a = Get { runGet :: StateT BDict Result a }
   deriving (Functor, Applicative, Alternative, Monad)
 
+-- | Get lexicographical successor of the current key\/value pair.
 next :: Get BValue
 next = Get (StateT go)
   where
     go  Nil          = throwError "no next"
     go (Cons _ v xs) = pure (v, xs)
 
+-- | Extract /required/ value from the given key.
 req :: BKey -> Get BValue
 req !key = Get (StateT search)
   where
@@ -663,32 +663,39 @@ req !key = Get (StateT search)
     msg = "required field `" ++ BC.unpack key ++ "' not found"
 {-# INLINE req #-}
 
+-- | Extract optional value from the given key.
 opt :: BKey -> Get (Maybe BValue)
 opt = optional . req
 {-# INLINE opt #-}
 
-{-# SPECIALIZE field :: Get BValue -> Get BValue #-}
+-- | Reconstruct a bencodable value from bencode value.
 field :: BEncode a => Get BValue -> Get a
+{-# SPECIALIZE field :: Get BValue -> Get BValue #-}
 field m = Get $ do
   v <- runGet m
   either throwError pure $ fromBEncode v
 
+-- | Shorthand for /f <$> field (req k)/.
 (<$>!) :: BEncode a => (a -> b) -> BKey -> Get b
 f <$>! k = f <$> field (req k)
 {-# INLINE (<$>!) #-}
 
+-- | Shorthand for /f <$> optional (field (req k))/.
 (<$>?) :: BEncode a => (Maybe a -> b) -> BKey -> Get b
 f <$>? k = f <$> optional (field (req k))
 {-# INLINE (<$>?) #-}
 
+-- | Shorthand for /f <*> field (req k)/.
 (<*>!) :: BEncode a => Get (a -> b) -> BKey -> Get b
 f <*>! k = f <*> field (req k)
 {-# INLINE (<*>!) #-}
 
+-- | Shorthand for /f <*> optional (field (req k))/.
 (<*>?) :: BEncode a => Get (Maybe a -> b) -> BKey -> Get b
 f <*>? k = f <*> optional (field (req k))
 {-# INLINE (<*>?) #-}
 
+-- | Run a 'Get' monad.
 fromDict :: forall a. Typeable a => Get a -> BValue -> Result a
 fromDict m (BDict d) = evalStateT (runGet m) d
 fromDict _  _        = decodingError (show (typeOf inst))
