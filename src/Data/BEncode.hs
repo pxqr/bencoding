@@ -579,8 +579,8 @@ instance (BEncode a, BEncode b, BEncode c, BEncode d, BEncode e)
 --  >     .: "tags"   .=? fileTags
 --  >     .: endDict
 --
---  NOTE: the list of pair SHOULD be sorted lexicographically by keys,
---  so: "length" < "md5sum" < "path" < "tags".
+--  NOTE: the list of pairs SHOULD be sorted lexicographically by
+--  keys, so: "length" < "md5sum" < "path" < "tags".
 --
 data Assoc = Some !BKey BValue
            | None
@@ -638,6 +638,9 @@ endDict = Nil
 --
 --  The /reqKey/ is used to extract required key — if lookup is failed
 --  then whole destructuring fail.
+--
+--  NOTE: the actions SHOULD be sorted lexicographically by keys, so:
+--  "length" < "md5sum" < "path" < "tags".
 --
 newtype Get a = Get { runGet :: StateT BDict Result a }
   deriving (Functor, Applicative, Alternative, Monad)
