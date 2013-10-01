@@ -10,5 +10,5 @@ make int's instances platform independent so we can make  library
 portable.
 BInteger = Integer
 * DONE rename BEncode to BValue, and BEncodable to BEncode
-* TODO use HashMap for dicts
-* TODO CPS Result
+* WONT use HashMap for dicts (much slower than Data.BEncode.req.search)
+* WONT CPS Result (apparently it's slower here)
