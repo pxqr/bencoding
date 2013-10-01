@@ -3,3 +3,4 @@
 * 0.2.2.0: Arbitrary length integers. (by specification)
 * 0.3.0.0: Rename BEncode to BValue and BEncodable to BEncode.
 * 0.4.0.0: Faster dictionary conversion.
+* 0.4.0.1: Nothing changed.
