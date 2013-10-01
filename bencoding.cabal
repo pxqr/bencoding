@@ -15,10 +15,7 @@ homepage:              https://github.com/cobit/bencoding
 bug-reports:           https://github.com/cobit/bencoding/issues
 synopsis:              A library for encoding and decoding of BEncode data.
 description:
-
-  A library for encoding and decoding of BEncode data.
-  .
-  See NEWS.md for release notes.
+  A library for fast and easy encoding and decoding of BEncode data.
 
 extra-source-files:    README.md
                      , changelog
