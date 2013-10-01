@@ -21,7 +21,7 @@ description:
   See NEWS.md for release notes.
 
 extra-source-files:    README.md
-                     , NEWS.md
+                     , changelog
 
 source-repository head
   type:                git
