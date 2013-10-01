@@ -656,7 +656,7 @@ req !key = Get (StateT search)
     search  Nil          = Left msg
     search (Cons k v xs) =
       case compare k key of
-        EQ -> Right (v, xs)
+        EQ -> pure (v, xs)
         LT -> search xs
         GT -> Left msg
 
