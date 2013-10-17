@@ -9,7 +9,8 @@
 --   don't need to import this module.
 --
 module Data.BEncode.Internal
-       ( parse
+       ( parser
+       , parse
        , build
        , ppBEncode
        ) where

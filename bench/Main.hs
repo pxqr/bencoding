@@ -26,6 +26,7 @@ import             Data.AttoBencode.Parser as B
 import "bencoding" Data.BEncode     as C
 import "bencoding" Data.BEncode.Internal as C
 import "bencoding" Data.BEncode.Types    as C
+import "bencoding" Data.BEncode.Get      as C
 
 
 instance NFData A.BEncode where
@@ -76,6 +77,10 @@ instance C.ToBEncode C.BValue FileInfo where
     "md5sum" C..=?? fiMD5sum
     "path"   C..=   fiPath
 
+instance C.FromBEncode C.BValue FileInfo where
+  get = C.getDict $ do
+    FileInfo <$> "length" <*> "md5sum" <*> "path"
+
 instance C.BEncode FileInfo where
   toBEncode FileInfo {..} = toDict $
          "length" .=!  fiLength
@@ -94,15 +99,15 @@ data ContentInfo =
     , ciMD5sum       :: !(Maybe ByteString)
     , ciName         :: !ByteString
     , ciPieceLength  :: !Int
-    , ciPieces       :: !ByteString
-    , ciPrivate      :: Maybe Bool
+--    , ciPieces       :: !ByteString
+    , ciPrivate      :: !(Maybe Bool)
     }
   | MultiFile {
       ciFiles        :: ![FileInfo]
     , ciName         :: !ByteString
     , ciPieceLength  :: !Int
     , ciPieces       :: !ByteString
-    , ciPrivate      :: Maybe Bool
+    , ciPrivate      :: !(Maybe Bool)
     } deriving (Show, Read, Eq, Typeable)
 
 instance ToBEncode C.BValue ContentInfo where
@@ -111,10 +116,24 @@ instance ToBEncode C.BValue ContentInfo where
     "md5sum"       C..=?? ciMD5sum
     "name"         C..=   ciName
     "piece length" C..=   ciPieceLength
-    "pieces"       C..=   ciPieces
+--    "pieces"       C..=   ciPieces
     "private"      C..=?? ciPrivate
 
   put MultiFile  {..} = undefined
+
+instance FromBEncode C.BValue ContentInfo where
+  get = C.getDict $ do
+      (SingleFile <$> "length"
+                  <*> "md5sum"
+                  <*> "name"
+                  <*> "piece length"
+--                  <*> "pieces"
+                  <*> "private"
+        )
+      <|>
+      (MultiFile  <$> "files" <*> "name"
+                  <*> "piece length" <*> "pieces"
+                  <*> "private")
 
 instance C.BEncode ContentInfo where
   toBEncode SingleFile {..}  = toDict $
@@ -122,7 +141,7 @@ instance C.BEncode ContentInfo where
     C..: "md5sum"       .=? ciMD5sum
     C..: "name"         .=! ciName
     C..: "piece length" .=! ciPieceLength
-    C..: "pieces"       .=! ciPieces
+--    C..: "pieces"       .=! ciPieces
     C..: "private"      .=? ciPrivate
     C..: endDict
 
@@ -139,14 +158,16 @@ instance C.BEncode ContentInfo where
                   <*>! "name"
                   <*>! "piece length"
                   <*>! "pieces"
-                  <*>? "private")
+                  <*>? "private"
+      )
       <|>
       (SingleFile <$>! "length"
                   <*>? "md5sum"
                   <*>! "name"
                   <*>! "piece length"
-                  <*>! "pieces"
-                  <*>? "private")
+--                  <*>! "pieces"
+                  <*>? "private"
+      )
 
 data Torrent = Torrent {
     tAnnounce     :: !ByteString
@@ -176,6 +197,19 @@ instance C.ToBEncode C.BValue Torrent where
     "publisher"     C..=?? tPublisher
     "publisher-url" C..=?? tPublisherURL
     "signature"     C..=?? tSignature
+
+instance C.FromBEncode C.BValue Torrent where
+  get = C.getDict $ do
+    Torrent <$> "announce"
+            <*> "announce-list"
+            <*> "comment"
+            <*> "created by"
+            <*> "creation date"
+            <*> "encoding"
+            <*> "info"
+            <*> "publisher"
+            <*> "publisherURL"
+            <*> "signature"
 
 instance C.BEncode Torrent where
   toBEncode Torrent {..} = toDict $
@@ -217,6 +251,8 @@ main = do
 
   case rnf (torrentFile, lazyTorrentFile) of
     () -> return ()
+
+  print $ (decode' torrentFile :: Either String Torrent)
 
   withArgs args $
        defaultMain
@@ -277,10 +313,10 @@ main = do
                d
 
        , let Right !be = C.parse torrentFile
-             id'   x  = let t = either error id (C.decode x)
+             id'   x  = let t = either error id (C.decode' x)
                         in BL.toStrict $ C.encode' (t :: Torrent)
              !_ = let Right t = C.decode torrentFile
-                     in if C.decode (BL.toStrict (C.encode' t))
+                     in if C.decode' (BL.toStrict (C.encode' t))
                            /= Right (t :: Torrent)
                         then error "invalid instance: BEncode Torrent"
                         else True

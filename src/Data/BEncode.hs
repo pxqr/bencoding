@@ -794,6 +794,7 @@ fromDict _  _        = decodingError (show (typeOf inst))
   where
     inst = error "fromDict: impossible" :: a
 
+
 {--------------------------------------------------------------------
   Encoding
 --------------------------------------------------------------------}

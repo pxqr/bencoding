@@ -39,6 +39,7 @@ library
                      , Data.BEncode.BDict
                      , Data.BEncode.Internal
                      , Data.BEncode.Types
+                     , Data.BEncode.Get
   build-depends:       base       == 4.*
                      , ghc-prim
                      , deepseq    == 1.3.*
