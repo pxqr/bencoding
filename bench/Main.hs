@@ -4,8 +4,10 @@
 {-# LANGUAGE OverloadedStrings  #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE BangPatterns       #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 module Main (main) where
 
+import Control.Applicative
 import Control.DeepSeq
 import Data.Attoparsec.ByteString as Atto
 import           Data.ByteString as BS
@@ -62,6 +64,90 @@ replicate' c x
 --  Big dicts
 -----------------------------------------------------------------------}
 
+data FileInfo = FileInfo
+    { fiLength      :: !Integer
+    , fiMD5sum      :: !(Maybe ByteString)
+    , fiPath        :: ![ByteString]
+    } deriving (Show, Read, Eq, Typeable)
+
+instance C.ToBEncode C.BValue FileInfo where
+  put FileInfo {..} = C.putDict $ do
+    "length" C..=   fiLength
+    "md5sum" C..=?? fiMD5sum
+    "path"   C..=   fiPath
+
+instance C.BEncode FileInfo where
+  toBEncode FileInfo {..} = toDict $
+         "length" .=!  fiLength
+    C..: "md5sum" .=? fiMD5sum
+    C..: "path"   .=!  fiPath
+    C..: endDict
+
+  fromBEncode = fromDict $
+    FileInfo <$>! "length"
+             <*>? "md5sum"
+             <*>! "path"
+
+data ContentInfo =
+    SingleFile {
+      ciLength       :: !Integer
+    , ciMD5sum       :: !(Maybe ByteString)
+    , ciName         :: !ByteString
+    , ciPieceLength  :: !Int
+    , ciPieces       :: !ByteString
+    , ciPrivate      :: Maybe Bool
+    }
+  | MultiFile {
+      ciFiles        :: ![FileInfo]
+    , ciName         :: !ByteString
+    , ciPieceLength  :: !Int
+    , ciPieces       :: !ByteString
+    , ciPrivate      :: Maybe Bool
+    } deriving (Show, Read, Eq, Typeable)
+
+instance ToBEncode C.BValue ContentInfo where
+  put SingleFile {..} = C.putDict $ do
+    "length"       C..=   ciLength
+    "md5sum"       C..=?? ciMD5sum
+    "name"         C..=   ciName
+    "piece length" C..=   ciPieceLength
+    "pieces"       C..=   ciPieces
+    "private"      C..=?? ciPrivate
+
+  put MultiFile  {..} = undefined
+
+instance C.BEncode ContentInfo where
+  toBEncode SingleFile {..}  = toDict $
+         "length"       .=! ciLength
+    C..: "md5sum"       .=? ciMD5sum
+    C..: "name"         .=! ciName
+    C..: "piece length" .=! ciPieceLength
+    C..: "pieces"       .=! ciPieces
+    C..: "private"      .=? ciPrivate
+    C..: endDict
+
+  toBEncode MultiFile {..} = toDict $
+         "files"        .=! ciFiles
+    C..: "name"         .=! ciName
+    C..: "piece length" .=! ciPieceLength
+    C..: "pieces"       .=! ciPieces
+    C..: "private"      .=? ciPrivate
+    C..: endDict
+
+  fromBEncode = fromDict $
+      (MultiFile  <$>! "files"
+                  <*>! "name"
+                  <*>! "piece length"
+                  <*>! "pieces"
+                  <*>? "private")
+      <|>
+      (SingleFile <$>! "length"
+                  <*>? "md5sum"
+                  <*>! "name"
+                  <*>! "piece length"
+                  <*>! "pieces"
+                  <*>? "private")
+
 data Torrent = Torrent {
     tAnnounce     :: !ByteString
   , tAnnounceList :: !(Maybe ByteString)
@@ -69,7 +155,7 @@ data Torrent = Torrent {
   , tCreatedBy    :: !(Maybe ByteString)
   , tCreationDate :: !(Maybe ByteString)
   , tEncoding     :: !(Maybe ByteString)
-  , tInfo         :: !BDict
+  , tInfo         :: !ContentInfo
   , tPublisher    :: !(Maybe ByteString)
   , tPublisherURL :: !(Maybe ByteString)
   , tSignature    :: !(Maybe ByteString)
@@ -77,6 +163,19 @@ data Torrent = Torrent {
 
 instance NFData Torrent where
   rnf Torrent {..} = ()
+
+instance C.ToBEncode C.BValue Torrent where
+  put Torrent {..} = C.putDict $ do
+    "announce"      C..=   tAnnounce
+    "announce-list" C..=?? tAnnounceList
+    "comment"       C..=?? tComment
+    "created by"    C..=?? tCreatedBy
+    "creation date" C..=?? tCreationDate
+    "encoding"      C..=?? tEncoding
+    "info"          C..=   tInfo
+    "publisher"     C..=?? tPublisher
+    "publisher-url" C..=?? tPublisherURL
+    "signature"     C..=?? tSignature
 
 instance C.BEncode Torrent where
   toBEncode Torrent {..} = toDict $
@@ -178,10 +277,10 @@ main = do
                d
 
        , let Right !be = C.parse torrentFile
-             id'   x  = let t = either error id (fromBEncode x)
-                        in toBEncode (t :: Torrent)
+             id'   x  = let t = either error id (C.decode x)
+                        in BL.toStrict $ C.encode' (t :: Torrent)
              !_ = let Right t = C.decode torrentFile
-                     in if C.decode (BL.toStrict (C.encode t))
+                     in if C.decode (BL.toStrict (C.encode' t))
                            /= Right (t :: Torrent)
                         then error "invalid instance: BEncode Torrent"
                         else True
@@ -190,7 +289,7 @@ main = do
                where go 0 = id
                      go n = f . go (pred n)
 
-         in bench "bigdict" $ nf (replFn (1000 :: Int) id') be
+         in bench "bigdict" $ nf (replFn (1000 :: Int) id') torrentFile
 
        , let fn x = let Right t = C.decode x in t :: Torrent
          in bench "torrent/decode" $ nf fn torrentFile

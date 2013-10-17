@@ -47,6 +47,8 @@
 {-# LANGUAGE CPP               #-}
 {-# LANGUAGE BangPatterns      #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE FunctionalDependencies #-}
 
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE TypeOperators          #-}
@@ -86,20 +88,31 @@ module Data.BEncode
        , (<$>?)
        , (<*>!)
        , (<*>?)
+
+       , ToBEncode (..)
+       , (.=)
+       , (.=??)
+       , putDict
+       , encode'
        ) where
 
 
 import Control.Applicative
 import Control.Monad
-import Control.Monad.State
+import Control.Monad.State hiding (put)
 import Control.Monad.Error
 import Data.Int
 import Data.List as L
+import Data.Foldable
 import Data.Monoid
 import Data.Word          (Word8, Word16, Word32, Word64, Word)
 import           Data.ByteString (ByteString)
+import           Data.ByteString as BS
+import           Data.ByteString.Internal as BS
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as Lazy
+import           Data.ByteString.Lazy.Builder as BS
+import qualified Data.ByteString.Lazy.Builder.ASCII as BS
 import           Data.Text (Text)
 import qualified Data.Text.Encoding as T
 import           Data.Typeable
@@ -244,7 +257,7 @@ instance (GBEncodable a e, GBEncodable b e)
         Left  re -> decodingError $ "generic: both" ++ le ++ " " ++ re
 
 selRename :: String -> String
-selRename = dropWhile ('_'==)
+selRename = L.dropWhile ('_'==)
 
 gfromM1S :: forall c. Selector c
          => GBEncodable f BValue
@@ -360,6 +373,7 @@ fromBEncodeIntegral _
   = decodingError $ show $ typeOf (error "fromBEncodeIntegral: imposible" :: a)
 {-# INLINE fromBEncodeIntegral #-}
 
+-- TODO use macro
 
 instance BEncode Word8 where
   toBEncode = toBEncodeIntegral
@@ -619,6 +633,81 @@ toDict = BDict
 endDict :: BDict
 endDict = Nil
 {-# INLINE endDict #-}
+
+{- NOTE we distinguish between sequence of pairs and bdict; this trick
+is used to divide dictionaries to a few datatypes-}
+
+-- data kinds for /d/
+newtype Put d a = Put { runPut :: Builder }
+
+instance Monad (Put BDict) where
+  return _ = Put mempty
+  Put m >> Put n = Put (m <> n)
+  {-# INLINE (>>) #-}
+
+instance Monad (Put BList) where
+  return _ = Put mempty
+  Put m >> Put n = Put (m <> n)
+  {-# INLINE (>>) #-}
+
+class ToBEncode d a | a -> d where
+  put :: a -> Put d ()
+
+putInteger :: Integer -> Put BValue ()
+putInteger i = Put
+  $  BS.word8 (c2w 'i')
+  <> BS.integerDec i
+  <> BS.word8 (c2w 'e')
+
+putByteString :: ByteString -> Put BValue ()
+putByteString bs = Put
+  $  BS.intDec (BS.length bs)
+  <> BS.word8 (c2w ':')
+  <> BS.byteString bs
+
+putList :: Put BList () -> Put BValue ()
+putList (Put b) = Put
+  $  BS.word8 (c2w 'l')
+  <> b
+  <> BS.word8 (c2w 'e')
+
+putDict :: Put BDict () -> Put BValue ()
+putDict (Put b) = Put
+  $  BS.word8 (c2w 'd')
+  <> b
+  <> BS.word8 (c2w 'e')
+
+instance ToBEncode BValue Integer where
+  put = putInteger
+  {-# INLINE put #-}
+
+instance ToBEncode BValue ByteString where
+  put = putByteString
+  {-# INLINE put #-}
+
+instance ToBEncode BValue Int where
+  put = put . (fromIntegral :: Int -> Integer)
+  {-# INLINE put #-}
+
+instance ToBEncode BValue Bool where
+  put = put . fromEnum
+  {-# INLINE put #-}
+
+instance ToBEncode BValue a => ToBEncode BValue [a] where
+  put = putList . Put . foldMap (runPut . put)
+
+(.=) :: ToBEncode BValue a => BKey -> a -> Put BDict ()
+k .= v = Put $ runPut (put k) <> runPut (put v)
+{-# INLINE (.=) #-}
+
+(.=??) :: ToBEncode BValue a => BKey -> Maybe a -> Put BDict ()
+(!k) .=?? mv  = case mv of
+  Nothing -> return ()
+  Just  v -> k .= v
+{-# INLINE (.=??) #-}
+
+encode' :: ToBEncode BValue a => a -> Lazy.ByteString
+encode' = BS.toLazyByteString . runPut . put
 
 {--------------------------------------------------------------------
 --  Dictionary extraction

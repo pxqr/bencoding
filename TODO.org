@@ -12,3 +12,4 @@ BInteger = Integer
 * DONE rename BEncode to BValue, and BEncodable to BEncode
 * WONT use HashMap for dicts (much slower than Data.BEncode.req.search)
 * WONT CPS Result (apparently it's slower here)
+* TODO lookahead :: Get a -> Get a
