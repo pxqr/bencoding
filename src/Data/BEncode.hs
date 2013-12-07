@@ -21,7 +21,7 @@
 --
 --    To serialize any other types we need to make conversion.  To
 --    make conversion more convenient there is type class for it:
---    'BEncodable'. Any textual strings are considered as UTF8 encoded
+--    'BEncode'. Any textual strings are considered as UTF8 encoded
 --    'Text'.
 --
 --    The complete Augmented BNF syntax for bencoding format is:
