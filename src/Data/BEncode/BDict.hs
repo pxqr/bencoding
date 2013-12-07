@@ -5,8 +5,9 @@
 --   Stability   :  stable
 --   Portability :  portable
 --
---   This module defines a simple key\/value list which both faster
---   and more suitable for bencode dictionaries then just [(k,v)].
+--   This module defines a simple key\/value list ordered by keys
+--   which both faster and more suitable for bencode dictionaries than
+--   just [(k,v)].
 --
 module Data.BEncode.BDict
        ( BKey
