@@ -1,3 +1,8 @@
+2013-12-08  Sam Truzjan  <pxqr.sta@gmail.com>
+
+	* 0.4.1.0: Expose parser and builder so it is possible to use
+	parser incrementally.
+
 2013-10-01  Sam Truzjan  <pxqr.sta@gmail.com>
 
 	* 0.4.0.2: Minor fixes.
