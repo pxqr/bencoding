@@ -2,3 +2,4 @@ dist
 cabal-dev
 bench/result.html
 bencoding.wiki
+upload-docs
