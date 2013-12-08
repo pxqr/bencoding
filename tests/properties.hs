@@ -3,31 +3,33 @@
 module Main (main) where
 
 import Control.Applicative
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as L
-import Test.Framework (defaultMain)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck
+import Data.ByteString as BS
+import Data.ByteString.Lazy as BL
+import Data.List as L
 import GHC.Generics
+import Test.QuickCheck
+import Test.Hspec
 
 import Data.BEncode
+import qualified Data.BEncode.BDict as BE
 
 
-instance Arbitrary B.ByteString where
-    arbitrary = fmap B.pack arbitrary
+instance Arbitrary BS.ByteString where
+  arbitrary = BS.pack <$> arbitrary
+
+instance Arbitrary a => Arbitrary (BE.BDictMap a) where
+  arbitrary = frequency
+    [ (90, pure BE.Nil)
+    , (10, BE.Cons <$> arbitrary <*> arbitrary <*> arbitrary)
+    ]
 
 instance Arbitrary BValue where
-    arbitrary = frequency
-                [ (50, BInteger <$> arbitrary)
-                , (40, BString  <$> arbitrary)
-                , (5,  BList    <$> (arbitrary `suchThat` ((10 >) . length)))
-                ]
-
-
-prop_EncDec :: BValue -> Bool
-prop_EncDec x = case decode (L.toStrict (encode x)) of
-                  Left _   -> False
-                  Right x' -> x == x'
+  arbitrary = frequency
+    [ (30, BInteger <$> arbitrary)
+    , (30, BString  <$> arbitrary)
+    , (20, BList    <$> (arbitrary `suchThat` ((10 >) . L.length)))
+    , (20, BDict    <$> arbitrary)
+    ]
 
 data List a = Cons a (List a) | Nil
               deriving (Show, Eq, Generic)
@@ -42,8 +44,8 @@ instance Arbitrary a => Arbitrary (List a) where
 
 data FileInfo = FileInfo
   { fiLength :: !Integer
-  , fiPath   :: [B.ByteString]
-  , fiMD5Sum :: B.ByteString
+  , fiPath   :: [BS.ByteString]
+  , fiMD5Sum :: BS.ByteString
   } deriving (Show, Eq, Generic)
 
 instance BEncode FileInfo
@@ -54,16 +56,17 @@ instance Arbitrary FileInfo where
 data T a = T
 
 prop_bencodable :: Eq a => BEncode a => T a -> a -> Bool
-prop_bencodable _ x = decode (L.toStrict (encode x)) == Right x
+prop_bencodable _ x = decode (BL.toStrict (encode x)) == Right x
 
--- All tests are (encode >>> decode = id)
 main :: IO ()
-main = defaultMain
-       [ testProperty "BEncode" prop_EncDec
+main = hspec $ do
+  describe "BValue" $ do
+    it "properly encoded" $ property $
+       prop_bencodable (T :: T BValue)
 
-       , testProperty "generic recordless" $
-            prop_bencodable (T :: T (List Int))
+  describe "BEncode" $ do
+    it "generic recordless" $ property $
+      prop_bencodable (T :: T (List Int))
 
-       , testProperty "generic records" $
-            prop_bencodable (T :: T FileInfo)
-       ]
+    it "generic records" $ property $
+      prop_bencodable (T :: T FileInfo)
