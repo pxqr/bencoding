@@ -6,10 +6,15 @@
 --   Portability :  portable
 --
 --   This module provides bencode values serialization. Normally, you
---   don't need to import this module.
+--   don't need to import this module, use 'Data.BEncode' instead.
 --
 module Data.BEncode.Internal
-       ( parse
+       ( -- * Parsing
+         parser
+       , parse
+
+         -- * Rendering
+       , builder
        , build
        , ppBEncode
        ) where
