@@ -683,20 +683,28 @@ field m = Get $ do
 f <$>! k = f <$> field (req k)
 {-# INLINE (<$>!) #-}
 
+infixl 4 <$>!
+
 -- | Shorthand for /f <$> optional (field (req k))/.
 (<$>?) :: BEncode a => (Maybe a -> b) -> BKey -> Get b
 f <$>? k = f <$> optional (field (req k))
 {-# INLINE (<$>?) #-}
+
+infixl 4 <$>?
 
 -- | Shorthand for /f <*> field (req k)/.
 (<*>!) :: BEncode a => Get (a -> b) -> BKey -> Get b
 f <*>! k = f <*> field (req k)
 {-# INLINE (<*>!) #-}
 
+infixl 4 <*>!
+
 -- | Shorthand for /f <*> optional (field (req k))/.
 (<*>?) :: BEncode a => Get (Maybe a -> b) -> BKey -> Get b
 f <*>? k = f <*> optional (field (req k))
 {-# INLINE (<*>?) #-}
+
+infixl 4 <*>?
 
 -- | Run a 'Get' monad.
 fromDict :: forall a. Typeable a => Get a -> BValue -> Result a
