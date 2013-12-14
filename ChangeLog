@@ -1,3 +1,9 @@
+2013-12-14  Sam Truzjan  <pxqr.sta@gmail.com>
+
+	* 0.4.2.0: Override default fixity for operators: previously it
+	has been impossible to mix bencode Get operators ((<$>!), (<$>?),
+	(<*>!), (<*>?)) with applicative operators ((<$>), (<*>)).
+
 2013-12-08  Sam Truzjan  <pxqr.sta@gmail.com>
 
 	* 0.4.1.0: Expose parser and builder so it is possible to use
