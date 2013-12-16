@@ -17,7 +17,7 @@
 --
 --     * lists        - represented as ordinary lists;
 --
---     * dictionaries — represented as 'Map';
+--     * dictionaries — represented as 'BDictMap';
 --
 --    To serialize any other types we need to make conversion.  To
 --    make conversion more convenient there is type class for it:
@@ -40,7 +40,9 @@
 --    > <DIGIT> ::= "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9"
 --
 --
---    This module is considered to be imported qualified.
+--    This module is considered to be imported qualified, for example:
+--
+--    > import Data.BEncode as BE
 --
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE Trustworthy       #-}
@@ -125,7 +127,7 @@ type Result = Either String
 --   the following datatype:
 --
 -- > data List a = C { _head  :: a
--- >                    , __tail :: List a }
+-- >                 , __tail :: List a }
 -- >             | N
 -- >               deriving Generic
 --
@@ -140,7 +142,8 @@ type Result = Either String
 -- > > toBEncode (C 123 $ C 1 N)
 -- > BDict (fromList [("head",BInteger 123),("tail",BList [])])
 --
---  Note that '_' prefixes are omitted since they are used for lens.
+--  Note that prefixed underscore characters are omitted since they
+--  are usually used for lens.
 --
 class BEncode a where
   -- | See an example of implementation here 'Assoc'
@@ -559,28 +562,34 @@ instance (BEncode a, BEncode b, BEncode c, BEncode d, BEncode e)
 -- optional keys. Suppose we have we following datatype we want to
 -- serialize:
 --
---  > data FileInfo = FileInfo
---  >   { fileLength :: Integer
---  >   , fileMD5sum :: Maybe ByteString
---  >   , filePath   :: [ByteString]
---  >   , fileTags   :: Maybe [Text]
---  >   } deriving (Show, Read, Eq)
+--  @
+--   data FileInfo = FileInfo
+--     { fileLength :: Integer
+--     , fileMD5sum :: Maybe ByteString
+--     , filePath   :: [ByteString]
+--     , fileTags   :: Maybe [Text]
+--     } deriving (Show, Read, Eq)
+--  @
 --
--- We need to make /instance BEncode FileInfo/, though we don't want
--- to check the both /maybes/ manually. The more declarative and
+-- We need to make @instance 'BEncode' FileInfo@, though we don't want
+-- to check the both 'Maybe's manually. The more declarative and
 -- convenient way to define the 'toBEncode' method is to use
 -- dictionary builders:
 --
---  > instance BEncode FileInfo where
---  >   toBEncode FileInfo {..} = toDict $
---  >        "length" .=! fileLength
---  >     .: "md5sum" .=? fileMD5sum
---  >     .: "path"   .=! filePath
---  >     .: "tags"   .=? fileTags
---  >     .: endDict
+--  @
+--   instance 'BEncode' FileInfo where
+--     'toBEncode' FileInfo {..} = 'toDict' $
+--          \"length\" '.=!' fileLength
+--       '.:' \"md5sum\" '.=?' fileMD5sum
+--       '.:' \"path\"   '.=!' filePath
+--       '.:' \"tags\"   '.=?' fileTags
+--       '.:' 'endDict'
+--  @
 --
---  NOTE: the list of pairs SHOULD be sorted lexicographically by
---  keys, so: "length" < "md5sum" < "path" < "tags".
+--  NOTE: the list of pairs MUST be sorted lexicographically by keys,
+--  like so:
+--
+--    \"length\" '<' \"md5sum\" '<' \"path\" '<' \"tags\"
 --
 data Assoc = Some !BKey BValue
            | None
@@ -592,8 +601,8 @@ data Assoc = Some !BKey BValue
 
 infix 6 .=!
 
--- | Like (.=!) but if the value is not present then the key do not
--- appear in resulting bencode dictionary.
+-- | Like the ('.=!') operator but if the value is not present then
+-- the key do not appear in resulting bencode dictionary.
 --
 (.=?) :: BEncode a => BKey -> Maybe a -> Assoc
 _ .=? Nothing = None
@@ -629,18 +638,21 @@ endDict = Nil
 -- declarative style. Using the same /FileInfo/ datatype the
 -- 'fromBEncode' function instance looks like:
 --
---  > instance BEncodable FileInfo where
---  >   fromBEncode = fromDict $ do
---  >     FileInfo <$>! "length"
---  >              <*>? "md5sum"
---  >              <*>! "path"
---  >              <*>? "tags"
+--  @
+--   instance 'BEncode' FileInfo where
+--     'fromBEncode' = 'fromDict' $ do
+--       FileInfo '<$>!' \"length\"
+--                '<*>?' \"md5sum\"
+--                '<*>!' \"path\"
+--                '<*>?' \"tags\"
+--  @
 --
 --  The /reqKey/ is used to extract required key — if lookup is failed
 --  then whole destructuring fail.
 --
---  NOTE: the actions SHOULD be sorted lexicographically by keys, so:
---  "length" < "md5sum" < "path" < "tags".
+--  NOTE: the actions MUST be sorted lexicographically by keys, like so:
+--
+--  \"length\" '<' \"md5sum\" '<' \"path\" '<' \"tags\"
 --
 newtype Get a = Get { runGet :: StateT BDict Result a }
   deriving (Functor, Applicative, Alternative)
@@ -692,35 +704,35 @@ field m = Get $ do
   v <- runGet m
   either throwError pure $ fromBEncode v
 
--- | Shorthand for /f <$> field (req k)/.
+-- | Shorthand for: @f '<$>' 'field' ('req' k)@.
 (<$>!) :: BEncode a => (a -> b) -> BKey -> Get b
 f <$>! k = f <$> field (req k)
 {-# INLINE (<$>!) #-}
 
 infixl 4 <$>!
 
--- | Shorthand for /f <$> optional (field (req k))/.
+-- | Shorthand for: @f '<$>' 'optional' ('field' ('req' k))@.
 (<$>?) :: BEncode a => (Maybe a -> b) -> BKey -> Get b
 f <$>? k = f <$> optional (field (req k))
 {-# INLINE (<$>?) #-}
 
 infixl 4 <$>?
 
--- | Shorthand for /f <*> field (req k)/.
+-- | Shorthand for: @f '<*>' 'field' ('req' k)@.
 (<*>!) :: BEncode a => Get (a -> b) -> BKey -> Get b
 f <*>! k = f <*> field (req k)
 {-# INLINE (<*>!) #-}
 
 infixl 4 <*>!
 
--- | Shorthand for /f <*> optional (field (req k))/.
+-- | Shorthand for: @f '<*>' 'optional' ('field' ('req' k))@.
 (<*>?) :: BEncode a => Get (Maybe a -> b) -> BKey -> Get b
 f <*>? k = f <*> optional (field (req k))
 {-# INLINE (<*>?) #-}
 
 infixl 4 <*>?
 
--- | Run a 'Get' monad.
+-- | Run a 'Get' monad. See 'Get' for usage.
 fromDict :: forall a. Typeable a => Get a -> BValue -> Result a
 fromDict m (BDict d) = evalStateT (runGet m) d
 fromDict _  _        = decodingError (show (typeOf inst))
