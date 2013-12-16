@@ -70,3 +70,9 @@ main = hspec $ do
 
     it "generic records" $ property $
       prop_bencodable (T :: T FileInfo)
+
+  describe "Get" $ do
+    it "catchable from pure code" $ do
+      fromDict (fail "fatal error" :: Get Int) (BDict BE.Nil)
+           `shouldBe`
+       Left "fatal error"

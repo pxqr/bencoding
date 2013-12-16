@@ -643,7 +643,21 @@ endDict = Nil
 --  "length" < "md5sum" < "path" < "tags".
 --
 newtype Get a = Get { runGet :: StateT BDict Result a }
-  deriving (Functor, Applicative, Alternative, Monad)
+  deriving (Functor, Applicative, Alternative)
+
+-- | 'fail' is catchable from pure code.
+instance Monad Get where
+  return a = Get (return a)
+  {-# INLINE return #-}
+
+  Get m >>= f = Get (m >>= runGet . f)
+  {-# INLINE (>>=) #-}
+
+  Get m >> Get n = Get (m >> n)
+  {-# INLINE (>>) #-}
+
+  fail msg = Get (lift (Left msg))
+  {-# INLINE fail #-}
 
 -- | Get lexicographical successor of the current key\/value pair.
 next :: Get BValue
