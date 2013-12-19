@@ -78,11 +78,13 @@ module Data.BEncode
        , Result
        , decodingError
        , fromDict
+       , lookAhead
 
        , next
        , req
        , opt
        , field
+       , match
 
        , (<$>!)
        , (<$>?)
@@ -671,6 +673,15 @@ instance Monad Get where
   fail msg = Get (lift (Left msg))
   {-# INLINE fail #-}
 
+-- | Run action, but return without consuming and key\/value pair.
+-- Fails if the action fails.
+lookAhead :: Get a -> Get a
+lookAhead (Get m) = Get $ do
+  s <- get
+  r <- m
+  put s
+  return r
+
 -- | Get lexicographical successor of the current key\/value pair.
 next :: Get BValue
 next = Get (StateT go)
@@ -703,6 +714,16 @@ field :: BEncode a => Get BValue -> Get a
 field m = Get $ do
   v <- runGet m
   either throwError pure $ fromBEncode v
+
+-- | Match key with value.
+match :: BKey -> BValue -> Get ()
+match key expected = do
+  actual <- req key
+  if actual == expected
+    then return ()
+    else fail $ "key match failure(" ++ show key ++ "): " ++
+                "expected = " ++ show expected ++
+                "actual   = " ++ show actual
 
 -- | Shorthand for: @f '<$>' 'field' ('req' k)@.
 (<$>!) :: BEncode a => (a -> b) -> BKey -> Get b
