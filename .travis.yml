@@ -26,7 +26,7 @@ notifications:
 
     use_notice: true
     template:
-      - "%{repository_name}#%{build_number} : %{message}"
+      - "%{repository}#%{build_number} : %{message}"
       - "Commit:  %{branch}/%{commit} by %{author}"
       - "Changes: %{compare_url}"
       - "Build:   %{build_url}"
