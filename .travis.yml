@@ -12,3 +12,21 @@ install:
 
 script:
   cabal configure --enable-tests --enable-benchmark && cabal build && cabal test
+
+notifications:
+  email:
+    on_success: never
+    on_failure: change
+
+  irc:
+    channels:
+      - "chat.freenode.net#haskell-bittorrent"
+    on_success: always
+    on_failure: always
+
+    use_notice: true
+    template:
+      - "%{repository_name}#%{build_number} : %{message}"
+      - "Commit:  %{branch}/%{commit} by %{author}"
+      - "Changes: %{compare_url}"
+      - "Build:   %{build_url}"
