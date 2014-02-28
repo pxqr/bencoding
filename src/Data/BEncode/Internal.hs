@@ -8,6 +8,7 @@
 --   This module provides bencode values serialization. Normally, you
 --   don't need to import this module, use 'Data.BEncode' instead.
 --
+{-# LANGUAGE MagicHash #-}
 module Data.BEncode.Internal
        ( -- * Parsing
          parser
@@ -23,10 +24,10 @@ import Control.Applicative
 import           Data.Attoparsec.ByteString.Char8 (Parser)
 import qualified Data.Attoparsec.ByteString.Char8 as P
 import           Data.ByteString as B
+import           Data.ByteString.Internal as B (c2w, w2c)
 import qualified Data.ByteString.Lazy as Lazy
 import qualified Data.ByteString.Lazy.Builder as B
 import qualified Data.ByteString.Lazy.Builder.ASCII as B
-import           Data.ByteString.Internal as B (c2w, w2c)
 import Data.Foldable
 import Data.List as L
 import Data.Monoid
@@ -35,17 +36,23 @@ import Text.PrettyPrint hiding ((<>))
 import Data.BEncode.Types
 import Data.BEncode.BDict as BD
 
+import GHC.Types
+import GHC.Integer.GMP.Internals
 
 {--------------------------------------------------------------------
 -- Serialization
 --------------------------------------------------------------------}
+
+integerDecimal :: Integer -> B.Builder
+integerDecimal (S# i#) = B.intDec (I# i#)
+integerDecimal  i      = B.string7 (show i) -- TODO more efficient
 
 -- | BEncode format encoder according to specification.
 builder :: BValue -> B.Builder
 builder = go
     where
       go (BInteger i) = B.word8 (c2w 'i') <>
-                        B.integerDec i <>
+                          integerDecimal i <>
                         B.word8 (c2w 'e')
       go (BString  s) = buildString s
       go (BList    l) = B.word8 (c2w 'l') <>
