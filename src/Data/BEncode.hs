@@ -251,7 +251,7 @@ instance (GBEncodable a e, GBEncodable b e)
 selRename :: String -> String
 selRename = dropWhile ('_'==)
 
-gfromM1S :: forall c. Selector c
+gfromM1S :: forall c f i p. Selector c
          => GBEncodable f BValue
          => BDict -> Result (M1 i c f p)
 gfromM1S dict
