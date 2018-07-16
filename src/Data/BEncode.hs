@@ -99,7 +99,8 @@ import Control.Monad.State
 import Control.Monad.Error
 import Data.Int
 import Data.List as L
-import Data.Monoid
+import Data.Semigroup ((<>))
+import Data.Monoid (Monoid (mappend, mempty))
 import Data.Word          (Word8, Word16, Word32, Word64, Word)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
@@ -251,7 +252,7 @@ instance (GBEncodable a e, GBEncodable b e)
 selRename :: String -> String
 selRename = dropWhile ('_'==)
 
-gfromM1S :: forall c. Selector c
+gfromM1S :: forall c f i p. Selector c
          => GBEncodable f BValue
          => BDict -> Result (M1 i c f p)
 gfromM1S dict
