@@ -99,7 +99,8 @@ import Control.Monad.State
 import Control.Monad.Error
 import Data.Int
 import Data.List as L
-import Data.Monoid
+import Data.Semigroup ((<>))
+import Data.Monoid (Monoid (mappend, mempty))
 import Data.Word          (Word8, Word16, Word32, Word64, Word)
 import           Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as BC
