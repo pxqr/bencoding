@@ -30,7 +30,7 @@ import qualified Data.ByteString.Lazy.Builder as B
 import qualified Data.ByteString.Lazy.Builder.ASCII as B
 import Data.Foldable
 import Data.List as L
-import Data.Monoid
+import Data.Monoid (Monoid (mappend, mempty))
 import Text.PrettyPrint hiding ((<>))
 
 import Data.BEncode.Types
@@ -51,21 +51,21 @@ integerDecimal  i      = B.string7 (show i) -- TODO more efficient
 builder :: BValue -> B.Builder
 builder = go
     where
-      go (BInteger i) = B.word8 (c2w 'i') <>
-                          integerDecimal i <>
+      go (BInteger i) = B.word8 (c2w 'i') `mappend`
+                          integerDecimal i `mappend`
                         B.word8 (c2w 'e')
       go (BString  s) = buildString s
-      go (BList    l) = B.word8 (c2w 'l') <>
-                        foldMap go l <>
+      go (BList    l) = B.word8 (c2w 'l') `mappend`
+                        foldMap go l `mappend`
                         B.word8 (c2w 'e')
-      go (BDict    d) = B.word8 (c2w 'd') <>
-                        bifoldMap mkKV d <>
+      go (BDict    d) = B.word8 (c2w 'd') `mappend`
+                        bifoldMap mkKV d `mappend`
                         B.word8 (c2w 'e')
           where
-            mkKV k v = buildString k <> go v
+            mkKV k v = buildString k `mappend` go v
 
-      buildString s = B.intDec (B.length s) <>
-                      B.word8 (c2w ':') <>
+      buildString s = B.intDec (B.length s) `mappend`
+                      B.word8 (c2w ':') `mappend`
                       B.byteString s
       {-# INLINE buildString #-}
 

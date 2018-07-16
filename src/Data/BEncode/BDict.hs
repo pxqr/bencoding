@@ -37,7 +37,8 @@ module Data.BEncode.BDict
 import Control.DeepSeq
 import Data.ByteString as BS
 import Data.Foldable
-import Data.Monoid
+import Data.Monoid (Monoid (mappend, mempty))
+import Data.Semigroup (Semigroup ((<>)))
 
 
 type BKey = ByteString
@@ -70,9 +71,12 @@ instance Foldable BDictMap where
       go (Cons _ v xs) = f v `mappend` go xs
   {-# INLINE foldMap #-}
 
+instance Semigroup (BDictMap a) where
+  (<>) = Data.BEncode.BDict.union
+
 instance Monoid (BDictMap a) where
   mempty  = Data.BEncode.BDict.empty
-  mappend = Data.BEncode.BDict.union
+  mappend = (<>)
 
 -- | /O(1)/. The empty dicionary.
 empty :: BDictMap a
